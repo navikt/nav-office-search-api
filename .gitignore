@@ -1,3 +1,5 @@
 /.idea/
 /node_modules/
 /.github-token
+/dist/
+/nav-office-search-api.iml
