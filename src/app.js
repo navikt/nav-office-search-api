@@ -7,7 +7,9 @@ import csv from 'csv-parser';
 
 dotenv.config();
 
-// TODO: convert special chars to a-z
+// TODO: rydd/refactor
+
+// TODO: konverter alt til a-z
 const sanitizeText = (text) => {
     return text.toLowerCase();
 };
@@ -40,9 +42,13 @@ const app = express();
 const appPort = 3003;
 const appName = 'nav-office-search-api';
 
+// TODO: sett env-vars for disse for dev/prod
 const norg2NavkontorApi = 'https://app-q0.adeo.no/norg2/api/v1/enhet/navkontor';
 const tpswsAdressesokApi =
     'https://app-q0.adeo.no/tpsws-aura/api/v1/adressesoek';
+
+// TODO: ta i bruk for søk på poststed
+const bringPostnrRegister = 'https://www.bring.no/postnummerregister-ansi.txt';
 
 const generateTpswsHeaders = () => ({
     'Nav-Consumer-Id': appName,
