@@ -69,6 +69,8 @@ const fetchOfficesFromGeografiskTilknytning = async (
             return acc;
         }
 
+        console.log(`acc:`, acc);
+
         return [...acc, norg2Res];
     }, []);
 };
