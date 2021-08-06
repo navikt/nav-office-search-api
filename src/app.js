@@ -71,7 +71,7 @@ const fetchOfficesFromGeografiskTilknytning = async (
 
         console.log(`acc:`, acc);
 
-        return [...acc, norg2Res];
+        return [...(await acc), norg2Res];
     }, []);
 };
 
