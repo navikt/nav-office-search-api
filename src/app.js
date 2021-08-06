@@ -139,7 +139,7 @@ app.get('/api', async (req, res) => {
 
     return res
         .status(400)
-        .send("Invalid request - 'postnr' or 'adresse' parameter required");
+        .send("Invalid request - 'postnr' or 'text' parameter required");
 });
 
 app.get('/internal/isAlive', (req, res) => {
