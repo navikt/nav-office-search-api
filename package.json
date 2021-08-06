@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node ./src/app.js"
+    "start": "node ./src/app.js",
+    "deploy-dev": "npm run deploy -- deploy.dev.yml"
   },
   "dependencies": {
     "dotenv": "^10.0.0",
@@ -14,6 +15,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@octokit/core": "^3.5.1",
     "prettier": "^2.3.2"
   }
 }
