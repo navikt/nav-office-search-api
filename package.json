@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node ./src/app.js",
+    "deploy": "npx run-func trigger-workflow.js triggerWorkflow",
     "deploy-dev": "npm run deploy -- deploy.dev.yml"
   },
   "dependencies": {
