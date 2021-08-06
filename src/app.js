@@ -9,8 +9,7 @@ const app = express();
 const appPort = 3003;
 const appName = 'nav-office-search-api';
 
-const norg2NavkontorApi =
-    'https://app-q0.adeo.no/norg2/api/v1/enhet/navkontor/';
+const norg2NavkontorApi = 'https://app-q0.adeo.no/norg2/api/v1/enhet/navkontor';
 const tpswsAdressesokApi =
     'https://app-q0.adeo.no/tpsws-aura/api/v1/adressesoek';
 
