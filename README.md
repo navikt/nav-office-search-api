@@ -1,1 +1,1 @@
-Proxy-app mellom nav-office-search frontend og norg2
+Proxy-app mellom nav-office-search frontend og tpsws/norg2
