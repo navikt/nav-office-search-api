@@ -125,7 +125,7 @@ const resultFromText = async (res, text) => {
     console.log(bydelerHits);
     console.log(kommunerHits);
 
-    const offices = fetchOfficesFromGeografiskTilknytning([
+    const offices = await fetchOfficesFromGeografiskTilknytning([
         ...bydelerHits,
         ...kommunerHits,
     ]);
