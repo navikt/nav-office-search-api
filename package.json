@@ -6,8 +6,8 @@
   "module": "es",
   "main": "dist/app.js",
   "scripts": {
-    "build": "rm -fr dist && tsc",
-    "start": "npm run build && node dist/app.js",
+    "build": "rm -fr distSrc && tsc",
+    "start": "npm run build && node distSrc/server.js",
     "deploy": "npx run-func trigger-workflow.cjs triggerWorkflow",
     "deploy-dev": "npm run deploy -- deploy.dev.yml"
   },

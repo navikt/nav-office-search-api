@@ -10,7 +10,7 @@
     ],
     "moduleResolution": "node",
     "module": "esnext",
-    "outDir": "./dist",
+    "outDir": "./distSrc",
     "strict": true,
     "target": "es2017",
   },

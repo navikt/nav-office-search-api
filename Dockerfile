@@ -9,7 +9,10 @@ COPY package*.json /usr/src/app/
 RUN npm ci
 
 # Copy app source
-COPY src /usr/src/app/src/
+COPY dist /usr/src/app/src/
+
+# Copy csv data
+COPY data /usr/src/app/data/
 
 # Start app
 EXPOSE 3003

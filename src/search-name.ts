@@ -1,7 +1,7 @@
-import { bydelerData, GeografiskData, kommunerData } from './data';
 import { Response } from 'express';
-import { sanitizeText } from './utils';
-import { fetchOfficesFromGeografiskTilknytning } from './fetch';
+import { bydelerData, GeografiskData, kommunerData } from './data.js';
+import { sanitizeText } from './utils.js';
+import { fetchOfficesFromGeografiskTilknytning } from './fetch.js';
 
 const filterDataAndGetCodesFromNameSearch = (
     dataArray: GeografiskData[],

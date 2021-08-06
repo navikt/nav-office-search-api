@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { responseFromPostnrSearch } from './search-postnr';
-import { responseFromNameSearch } from './search-name';
+import { responseFromPostnrSearch } from './search-postnr.js';
+import { responseFromNameSearch } from './search-name.js';
 
 dotenv.config();
 

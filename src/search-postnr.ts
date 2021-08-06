@@ -2,8 +2,8 @@ import { Response } from 'express';
 import {
     fetchOfficesFromGeografiskTilknytning,
     fetchTpsPostnrSok,
-} from './fetch';
-import { filterDuplicates } from './utils';
+} from './fetch.js';
+import { filterDuplicates } from './utils.js';
 
 export const responseFromPostnrSearch = async (
     res: Response,
