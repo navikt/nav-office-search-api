@@ -9,7 +9,8 @@ const app = express();
 const appPort = 3003;
 const appName = 'nav-office-search-api';
 
-const norg2api = 'https://app-q0.adeo.no/norg2/api/v1/enhet/navkontor/';
+const norg2NavkontorApi =
+    'https://app-q0.adeo.no/norg2/api/v1/enhet/navkontor/';
 const tpswsAdressesokApi =
     'https://app-q0.adeo.no/tpsws-aura/api/v1/adressesoek';
 
@@ -18,7 +19,18 @@ const generateTpswsHeaders = () => ({
     'Nav-Call-Id': uuid(),
 });
 
-const filterResult = (result) => result;
+const getUniqueAreaNumbers = (adresseDataList) => [
+    ...new Set(adresseDataList.map((item) => item.geografiskTilknytning)),
+];
+
+const transformAdresseDataListToNavEnheter = async (adresseDataList) => {
+    const areaNumbers = getUniqueAreaNumbers(adresseDataList);
+
+    return await areaNumbers.map(
+        async (areaNumber) =>
+            await fetchJson(`${norg2NavkontorApi}/${areaNumber}`)
+    );
+};
 
 const tpswsAdresseSokFetch = async (params) =>
     await fetchJson(tpswsAdressesokApi, params, generateTpswsHeaders());
@@ -35,7 +47,7 @@ const resultFromPostnr = async (res, postnr) => {
     }
 
     const adresser = !!apiRes.adresseDataList
-        ? filterResult(apiRes.adresseDataList)
+        ? await transformAdresseDataListToNavEnheter(apiRes.adresseDataList)
         : [];
 
     return res.status(200).send(adresser);
