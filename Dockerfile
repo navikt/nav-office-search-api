@@ -9,9 +9,9 @@ COPY package*.json /usr/src/app/
 RUN npm ci
 
 # Copy app source
-COPY dist /usr/src/app/src/
+COPY distSrc /usr/src/app/src/
 
-# Copy csv data
+# Copy app data
 COPY data /usr/src/app/data/
 
 # Start app

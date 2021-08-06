@@ -8,6 +8,7 @@ import { fetchPostnrRegister } from './fetch.js';
 export type GeografiskData = {
     code: string;
     name: string;
+    bydeler?: GeografiskData[];
 };
 
 type PostStedData = {
@@ -34,25 +35,44 @@ export const getPostNrData = async (): Promise<PostStedData[]> =>
     });
 
 export const bydelerData: GeografiskData[] = [];
-fs.createReadStream('./data/bydeler.csv')
-    .pipe(csv({ separator: ';' }))
-    .on('data', (data) => {
-        if (data.name !== 'Uoppgitt') {
-            bydelerData.push({
-                code: data.code,
-                name: sanitizeText(data.name),
-            });
-        }
-    })
-    .on('end', () => console.log('Finished loading bydeler'));
 
 export const kommunerData: GeografiskData[] = [];
-fs.createReadStream('./data/kommuner.csv')
-    .pipe(csv({ separator: ';' }))
-    .on('data', (data) =>
-        kommunerData.push({
-            code: data.code,
-            name: sanitizeText(data.name),
+
+const getBydelerInKommune = (kommuneNr: string) =>
+    bydelerData.filter((bydelNr) => bydelNr.code.startsWith(kommuneNr));
+
+const loadKommunerData = () => {
+    fs.createReadStream('./data/kommuner.csv')
+        .pipe(csv({ separator: ';' }))
+        .on('data', (data) => {
+            const bydeler = getBydelerInKommune(data.code);
+
+            kommunerData.push({
+                code: data.code,
+                name: sanitizeText(data.name),
+                ...(bydeler && { bydeler }),
+            });
         })
-    )
-    .on('end', () => console.log('Finished loading kommuner'));
+        .on('end', () => {
+            console.log('Finished loading kommuner');
+        });
+};
+
+const loadBydelerData = () => {
+    fs.createReadStream('./data/bydeler.csv')
+        .pipe(csv({ separator: ';' }))
+        .on('data', (data) => {
+            if (data.name !== 'Uoppgitt') {
+                bydelerData.push({
+                    code: data.code,
+                    name: sanitizeText(data.name),
+                });
+            }
+        })
+        .on('end', () => {
+            console.log('Finished loading bydeler');
+            loadKommunerData();
+        });
+};
+
+loadBydelerData();

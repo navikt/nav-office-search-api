@@ -7,22 +7,28 @@ const filterDataAndGetCodesFromNameSearch = (
     dataArray: GeografiskData[],
     name: string
 ) =>
-    dataArray.reduce(
-        (acc, item) => (item.name.includes(name) ? [...acc, item.code] : acc),
-        [] as string[]
-    );
+    dataArray.reduce((acc, item) => {
+        if (item.name.includes(name)) {
+            if (item.bydeler) {
+                return [...acc, ...item.bydeler.map((bydel) => bydel.code)];
+            }
+
+            return [...acc, item.code];
+        }
+
+        return acc;
+    }, [] as string[]);
 
 export const responseFromNameSearch = async (res: Response, text: string) => {
     const sanitizedText = sanitizeText(text);
 
-    const bydelerHits = filterDataAndGetCodesFromNameSearch(
-        bydelerData,
+    const kommunerHits = filterDataAndGetCodesFromNameSearch(
+        kommunerData,
         sanitizedText
     );
 
-    // TODO: håndter treff på kommuner med bydeler
-    const kommunerHits = filterDataAndGetCodesFromNameSearch(
-        kommunerData,
+    const bydelerHits = filterDataAndGetCodesFromNameSearch(
+        bydelerData,
         sanitizedText
     );
 
