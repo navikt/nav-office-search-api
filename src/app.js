@@ -109,6 +109,7 @@ const resultFromText = async (res, text) => {
         sanitizedText
     );
 
+    // TODO: håndter treff på kommuner med bydeler
     const kommunerHits = filterDataAndGetCodesFromNameSearch(
         kommunerData,
         sanitizedText

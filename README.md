@@ -1,1 +1,1 @@
-Proxy-app mellom nav-office-search frontend og tpsws/norg2
+Fss-app for søk etter NAV-kontor via tpsws og norg2
