@@ -1,0 +1,1 @@
+App som videresender kall for revalidering av innhold fra [Enonic XP](https://github.com/navikt/nav-enonicxp) CMS'et til alle podder for [nav-enonicxp-frontend](https://github.com/navikt/nav-enonicxp-frontend). 

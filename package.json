@@ -1,0 +1,13 @@
+{
+  "name": "nav-office-search-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./src/app.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.1",
+    "dotenv": "^10.0.0"
+  }
+}

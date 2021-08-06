@@ -1,0 +1,31 @@
+---
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  name: nav-office-search-api
+  namespace: {{namespace}}
+  labels:
+    team: personbruker
+spec:
+  image: {{image}}:{{version}}
+  team: personbruker
+  port: 3003
+  liveness:
+    path: /internal/isAlive
+    initialDelay: 10
+  readiness:
+    path: /internal/isReady
+    initialDelay: 10
+  ingresses:
+  {{#each ingresses as |url|}}
+    - {{url}}
+  {{/each}}
+  replicas:
+    min: 2
+    max: 3
+  resources:
+    limits:
+      cpu: '2'
+      memory: 256Mi
+    requests:
+      memory: 256Mi
