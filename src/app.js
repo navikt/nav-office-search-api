@@ -2,8 +2,39 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { v4 as uuid } from 'uuid';
 import { fetchJson } from './fetch.js';
+import fs from 'fs';
+import csv from 'csv-parser';
 
 dotenv.config();
+
+// TODO: convert special chars to a-z
+const sanitizeText = (text) => {
+    return text.toLowerCase();
+};
+
+const bydelerData = [];
+fs.createReadStream('src/data/bydeler.csv')
+    .pipe(csv({ separator: ';' }))
+    .on('data', (data) => {
+        if (data.name !== 'Uoppgitt') {
+            bydelerData.push({
+                code: data.code,
+                name: sanitizeText(data.name),
+            });
+        }
+    })
+    .on('end', () => console.log('Finished loading bydeler'));
+
+const kommunerData = [];
+fs.createReadStream('src/data/kommuner.csv')
+    .pipe(csv({ separator: ';' }))
+    .on('data', (data) =>
+        kommunerData.push({
+            code: data.code,
+            name: sanitizeText(data.name),
+        })
+    )
+    .on('end', () => console.log('Finished loading kommuner'));
 
 const app = express();
 const appPort = 3003;
@@ -18,16 +49,13 @@ const generateTpswsHeaders = () => ({
     'Nav-Call-Id': uuid(),
 });
 
-const getUniqueAreaNumbers = (adresseDataList) => [
-    ...new Set(adresseDataList.map((item) => item.geografiskTilknytning)),
-];
+const filterDuplicates = (array) => [...new Set(array)];
 
-const transformAdresseDataListToNavEnheter = async (adresseDataList) => {
-    const areaNumbers = getUniqueAreaNumbers(adresseDataList);
-    console.log(adresseDataList.length, areaNumbers);
-
-    return await areaNumbers.reduce(async (acc, areaNumber) => {
-        const norg2Res = await fetchJson(`${norg2NavkontorApi}/${areaNumber}`);
+const fetchOfficesFromGeografiskTilknytning = async (
+    geografiskTilknytningArray
+) => {
+    return await geografiskTilknytningArray.reduce(async (acc, gtNumber) => {
+        const norg2Res = await fetchJson(`${norg2NavkontorApi}/${gtNumber}`);
 
         if (norg2Res.error) {
             console.error(norg2Res.message);
@@ -52,26 +80,60 @@ const resultFromPostnr = async (res, postnr) => {
         return res.status(apiRes.statusCode).send(apiRes.message);
     }
 
-    const adresser = !!apiRes.adresseDataList
-        ? await transformAdresseDataListToNavEnheter(apiRes.adresseDataList)
-        : [];
+    const { adresseDataList } = apiRes;
 
-    return res.status(200).send(adresser);
+    if (adresseDataList) {
+        const geografiskTilknytningNumbers = filterDuplicates(
+            adresseDataList.map((item) => item.geografiskTilknytning)
+        );
+        const offices = await fetchOfficesFromGeografiskTilknytning(
+            geografiskTilknytningNumbers
+        );
+        return res.status(200).send(offices);
+    }
+
+    return res.status(200).send([]);
 };
 
-const resultFromAdresse = () => {
-    return [];
+const filterDataAndGetCodesFromNameSearch = (dataArray, name) =>
+    dataArray.reduce(
+        (acc, item) => (item.name.includes(name) ? [...acc, item.code] : acc),
+        []
+    );
+
+const resultFromText = async (res, text) => {
+    const sanitizedText = sanitizeText(text);
+
+    const bydelerHits = filterDataAndGetCodesFromNameSearch(
+        bydelerData,
+        sanitizedText
+    );
+
+    const kommunerHits = filterDataAndGetCodesFromNameSearch(
+        kommunerData,
+        sanitizedText
+    );
+
+    console.log(bydelerHits);
+    console.log(kommunerHits);
+
+    const offices = fetchOfficesFromGeografiskTilknytning([
+        ...bydelerHits,
+        ...kommunerHits,
+    ]);
+
+    return res.status(200).send(offices);
 };
 
 app.get('/api', async (req, res) => {
-    const { postnr, adresse } = req.query;
+    const { postnr, text } = req.query;
 
     if (postnr) {
         return resultFromPostnr(res, postnr);
     }
 
-    if (adresse) {
-        return res.status(200).send(resultFromAdresse(postnr));
+    if (text) {
+        return resultFromText(res, text);
     }
 
     return res
