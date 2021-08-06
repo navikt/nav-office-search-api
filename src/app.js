@@ -39,9 +39,9 @@ const resultFromPostnr = async (res, postnr) => {
         soketype: 'L',
         postnr: postnr,
     });
-    console.log(apiRes);
 
     if (apiRes.error) {
+        console.error(apiRes.message);
         return res.status(apiRes.statusCode).send(apiRes.message);
     }
 
