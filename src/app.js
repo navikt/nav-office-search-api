@@ -24,11 +24,18 @@ const getUniqueAreaNumbers = (adresseDataList) => [
 
 const transformAdresseDataListToNavEnheter = async (adresseDataList) => {
     const areaNumbers = getUniqueAreaNumbers(adresseDataList);
+    console.log(adresseDataList.length, areaNumbers);
 
-    return await areaNumbers.map(
-        async (areaNumber) =>
-            await fetchJson(`${norg2NavkontorApi}/${areaNumber}`)
-    );
+    return await areaNumbers.reduce(async (acc, areaNumber) => {
+        const norg2Res = await fetchJson(`${norg2NavkontorApi}/${areaNumber}`);
+
+        if (norg2Res.error) {
+            console.error(norg2Res.message);
+            return acc;
+        }
+
+        return [...acc, norg2Res];
+    }, []);
 };
 
 const tpswsAdresseSokFetch = async (params) =>
@@ -52,7 +59,7 @@ const resultFromPostnr = async (res, postnr) => {
     return res.status(200).send(adresser);
 };
 
-const resultFromAdresse = (adresse) => {
+const resultFromAdresse = () => {
     return [];
 };
 
