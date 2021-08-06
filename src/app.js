@@ -8,6 +8,7 @@ import csv from 'csv-parser';
 dotenv.config();
 
 // TODO: rydd/refactor
+// TODO: legg til caching på api-fetch fra norg2 og tpsws
 
 // TODO: konverter alt til a-z
 const sanitizeText = (text) => {
