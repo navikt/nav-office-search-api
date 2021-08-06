@@ -7,7 +7,7 @@ dotenv.config();
 var app = express();
 const appPort = 3003;
 
-app.get('/revalidator-proxy', (req, res) => {
+app.get('/api', (req, res) => {
   return res.status(200).send("Hello world");
 });
 
