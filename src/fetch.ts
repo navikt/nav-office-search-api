@@ -2,7 +2,6 @@ import fetch, { HeadersInit } from 'node-fetch';
 import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
 
-// TODO: sett env-vars for disse for dev/prod
 const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API as string;
 const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API as string;
 

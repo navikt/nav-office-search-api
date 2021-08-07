@@ -9,7 +9,8 @@ COPY package*.json /usr/src/app/
 RUN npm ci
 
 # Copy app source
-COPY distSrc /usr/src/app/src/
+COPY src /usr/src/app/src/
+COPY tsconfig.json /usr/src/app/
 
 # Copy app data
 COPY data /usr/src/app/data/
