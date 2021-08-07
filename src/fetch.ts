@@ -96,8 +96,7 @@ export const fetchTpsPostnrSok = async (
 export const fetchOfficeInfo = async (geografiskTilknytningArray: string[]) => {
     const officeInfo = [];
 
-    for (const acc of geografiskTilknytningArray) {
-        const gtNumber = geografiskTilknytningArray.indexOf(acc);
+    for (const gtNumber of geografiskTilknytningArray) {
         const norg2Res = await fetchJson(`${norg2NavkontorApi}/${gtNumber}`);
 
         if (!norg2Res.error) {
