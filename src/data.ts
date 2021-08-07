@@ -3,15 +3,13 @@ import csv from 'csv-parser';
 import { sanitizeText } from './utils.js';
 import { fetchPostnrRegister } from './fetch.js';
 
-// TODO: legg til caching på api-fetch fra norg2 og tpsws
-
 export type GeografiskData = {
     code: string;
     name: string;
     bydeler?: GeografiskData[];
 };
 
-type PostStedData = {
+export type PostStedData = {
     postnr: string;
     poststed: string;
     kommunenr: string;
@@ -38,14 +36,14 @@ export const bydelerData: GeografiskData[] = [];
 
 export const kommunerData: GeografiskData[] = [];
 
-const getBydelerInKommune = (kommuneNr: string) =>
+const getBydelerFromKommune = (kommuneNr: string) =>
     bydelerData.filter((bydelNr) => bydelNr.code.startsWith(kommuneNr));
 
 const loadKommunerData = () => {
     fs.createReadStream('./data/kommuner.csv')
         .pipe(csv({ separator: ';' }))
         .on('data', (data) => {
-            const bydeler = getBydelerInKommune(data.code);
+            const bydeler = getBydelerFromKommune(data.code);
 
             kommunerData.push({
                 code: data.code,

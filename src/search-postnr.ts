@@ -1,8 +1,5 @@
 import { Response } from 'express';
-import {
-    fetchOfficesFromGeografiskTilknytning,
-    fetchTpsPostnrSok,
-} from './fetch.js';
+import { fetchOfficeInfo, fetchTpsPostnrSok } from './fetch.js';
 import { filterDuplicates } from './utils.js';
 
 export const responseFromPostnrSearch = async (
@@ -22,9 +19,9 @@ export const responseFromPostnrSearch = async (
         const geografiskTilknytningNumbers = filterDuplicates(
             adresseDataList.map((item) => item.geografiskTilknytning)
         );
-        const offices = await fetchOfficesFromGeografiskTilknytning(
-            geografiskTilknytningNumbers
-        );
+
+        const offices = await fetchOfficeInfo(geografiskTilknytningNumbers);
+
         return res.status(200).send(offices);
     }
 

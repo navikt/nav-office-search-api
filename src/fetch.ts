@@ -3,15 +3,15 @@ import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
 
 // TODO: sett env-vars for disse for dev/prod
-const norg2NavkontorApi = 'https://app-q0.adeo.no/norg2/api/v1/enhet/navkontor';
-const tpswsAdressesokApi =
-    'https://app-q0.adeo.no/tpsws-aura/api/v1/adressesoek';
+const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API as string;
+const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API as string;
 
 const bringPostnrRegister = 'https://www.bring.no/postnummerregister-ansi.txt';
 
 const oneDayInSeconds = 24 * 60 * 60;
 const postnrRegisterCacheKey = 'postnrRegister';
 
+// TODO: legg til caching på api-fetch fra norg2 og tpsws
 const cache = new Cache({
     stdTTL: oneDayInSeconds,
 });
@@ -94,9 +94,7 @@ export const fetchTpsPostnrSok = async (
     );
 };
 
-export const fetchOfficesFromGeografiskTilknytning = async (
-    geografiskTilknytningArray: string[]
-) => {
+export const fetchOfficeInfo = async (geografiskTilknytningArray: string[]) => {
     const officeInfo = [];
 
     for (const acc of geografiskTilknytningArray) {

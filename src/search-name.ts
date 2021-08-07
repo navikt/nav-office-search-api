@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { bydelerData, GeografiskData, kommunerData } from './data.js';
 import { sanitizeText } from './utils.js';
-import { fetchOfficesFromGeografiskTilknytning } from './fetch.js';
+import { fetchOfficeInfo } from './fetch.js';
 
 const filterDataAndGetCodesFromNameSearch = (
     dataArray: GeografiskData[],
@@ -35,10 +35,7 @@ export const responseFromNameSearch = async (res: Response, text: string) => {
     console.log(bydelerHits);
     console.log(kommunerHits);
 
-    const offices = await fetchOfficesFromGeografiskTilknytning([
-        ...bydelerHits,
-        ...kommunerHits,
-    ]);
+    const offices = await fetchOfficeInfo([...bydelerHits, ...kommunerHits]);
 
     return res.status(200).send(offices);
 };
