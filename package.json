@@ -7,13 +7,13 @@
   "main": "dist/app.js",
   "scripts": {
     "build": "rm -fr distSrc && tsc",
-    "start": "npm run build && node distSrc/server.js",
+    "start": "npm run build && node -r dotenv/config distSrc/server.js",
+    "start-docker": "npm run build && node distSrc/server.js",
     "deploy": "npx run-func trigger-workflow.cjs triggerWorkflow",
     "deploy-dev": "npm run deploy -- deploy.dev.yml"
   },
   "dependencies": {
     "csv-parser": "^3.0.0",
-    "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "node-cache": "^5.1.2",
     "node-fetch": "^2.6.1",
@@ -25,6 +25,7 @@
     "@types/node": "^16.4.13",
     "@types/node-fetch": "^2.5.12",
     "@types/uuid": "^8.3.1",
+    "dotenv": "^10.0.0",
     "eslint": "^7.32.0",
     "prettier": "^2.3.2",
     "typescript": "^4.3.5"

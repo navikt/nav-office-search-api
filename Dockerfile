@@ -16,4 +16,4 @@ COPY data /usr/src/app/data/
 
 # Start app
 EXPOSE 3003
-CMD ["npm", "run", "start"]
+CMD ["npm", "run", "start-docker"]
