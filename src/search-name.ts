@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { bydelerData, GeografiskData, kommunerData } from './data.js';
-import { sanitizeText } from './utils.js';
+import { sanitizeString } from './utils.js';
 import { fetchOfficeInfo } from './fetch.js';
 
 const filterDataAndGetCodesFromNameSearch = (
@@ -20,7 +20,7 @@ const filterDataAndGetCodesFromNameSearch = (
     }, [] as string[]);
 
 export const responseFromNameSearch = async (res: Response, text: string) => {
-    const sanitizedText = sanitizeText(text);
+    const sanitizedText = sanitizeString(text);
 
     const kommunerHits = filterDataAndGetCodesFromNameSearch(
         kommunerData,

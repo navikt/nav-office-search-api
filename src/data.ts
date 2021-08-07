@@ -1,6 +1,6 @@
 import fs from 'fs';
 import csv from 'csv-parser';
-import { sanitizeText } from './utils.js';
+import { sanitizeString } from './utils.js';
 import { fetchPostnrRegister } from './fetch.js';
 
 export type GeografiskData = {
@@ -47,7 +47,7 @@ const loadKommunerData = () => {
 
             kommunerData.push({
                 code: data.code,
-                name: sanitizeText(data.name),
+                name: sanitizeString(data.name),
                 ...(bydeler && { bydeler }),
             });
         })
@@ -63,7 +63,7 @@ const loadBydelerData = () => {
             if (data.name !== 'Uoppgitt') {
                 bydelerData.push({
                     code: data.code,
-                    name: sanitizeText(data.name),
+                    name: sanitizeString(data.name),
                 });
             }
         })
