@@ -9,19 +9,19 @@ const app = express();
 const appPort = 3003;
 
 app.get('/api', async (req, res) => {
-    const { postnr, text } = req.query;
+    const { postnr, name } = req.query;
 
     if (typeof postnr === 'string') {
         return responseFromPostnrSearch(res, postnr);
     }
 
-    if (typeof text === 'string') {
-        return responseFromNameSearch(res, text);
+    if (typeof name === 'string') {
+        return responseFromNameSearch(res, name);
     }
 
     return res
         .status(400)
-        .send("Invalid request - 'postnr' or 'text' parameter required");
+        .send("Invalid request - 'postnr' or 'name' parameter is required");
 });
 
 app.get('/internal/isAlive', (req, res) => {
