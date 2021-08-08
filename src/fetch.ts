@@ -1,6 +1,7 @@
 import fetch, { HeadersInit } from 'node-fetch';
 import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
+import fs from 'fs';
 import { SearchHit } from './utils.js';
 
 const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API as string;
@@ -157,6 +158,20 @@ export const fetchOfficeInfoAndTransformResult = async (
 };
 
 export const fetchPostnrRegister = async (): Promise<string> => {
-    // TODO: error handling
-    return fetch(bringPostnrRegisterUrl).then((res) => res.text());
+    try {
+        return await fetch(bringPostnrRegisterUrl).then((res) => {
+            if (res.ok) {
+                return res.text();
+            }
+
+            throw new Error(
+                `Error fetching postnr register: ${res.status} - ${res.statusText}`
+            );
+        });
+    } catch (e) {
+        console.error(`Error fetching postnr register: ${e}`);
+        return fs.readFileSync('./data/postnummerregister-ansi.txt', {
+            encoding: 'latin1',
+        });
+    }
 };
