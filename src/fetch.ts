@@ -10,11 +10,8 @@ const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API as string;
 const bringPostnrRegisterUrl =
     'https://www.bring.no/postnummerregister-ansi.txt';
 
-const oneDayInSeconds = 24 * 60 * 60;
-
-// TODO: legg til caching på api-fetch fra norg2 og tpsws
-const cache = new Cache({
-    stdTTL: oneDayInSeconds,
+const norgCache = new Cache({
+    stdTTL: 3600,
 });
 
 export type AdresseDataList = {
@@ -137,8 +134,21 @@ export const fetchTpsPostnrSok = async (
 
 const fetchNorgNavkontor = async (
     geografiskNr: string
-): Promise<NorgNavkontorResponse | ErrorResponse> =>
-    await fetchJson(`${norg2NavkontorApi}/${geografiskNr}`);
+): Promise<NorgNavkontorResponse | ErrorResponse> => {
+    if (norgCache.has(geografiskNr)) {
+        return norgCache.get(geografiskNr) as NorgNavkontorResponse;
+    }
+
+    const response = await fetchJson(`${norg2NavkontorApi}/${geografiskNr}`);
+
+    if (response.error) {
+        return response;
+    }
+
+    norgCache.set(geografiskNr, response);
+
+    return response;
+};
 
 export const fetchOfficeInfoAndTransformResult = async ({
     geografiskNr,

@@ -5,11 +5,20 @@ import {
     fetchTpsPostnrSok,
 } from './fetch.js';
 import { removeDuplicates } from './utils.js';
+import Cache from 'node-cache';
+
+const cache = new Cache({
+    stdTTL: 3600,
+});
 
 export const responseFromPostnrSearch = async (
     res: Response,
     postnr: string
 ) => {
+    if (cache.has(postnr)) {
+        return res.status(200).send(cache.get(postnr));
+    }
+
     const apiRes = await fetchTpsPostnrSok(postnr);
 
     if (apiRes.error) {
@@ -38,6 +47,8 @@ export const responseFromPostnrSearch = async (
                 offices.push(officeInfo);
             }
         }
+
+        cache.set(postnr, offices);
 
         return res.status(200).send(offices);
     }
