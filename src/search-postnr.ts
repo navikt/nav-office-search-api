@@ -29,10 +29,10 @@ export const responseFromPostnrSearch = async (
         const offices = [];
 
         for (const adresse of adresseDataListFiltered) {
-            const officeInfo = await fetchOfficeInfoAndTransformResult(
-                adresse.geografiskTilknytning,
-                adresse.poststed
-            );
+            const officeInfo = await fetchOfficeInfoAndTransformResult({
+                geografiskNr: adresse.geografiskTilknytning,
+                hitString: adresse.poststed,
+            });
 
             if (officeInfo) {
                 offices.push(officeInfo);

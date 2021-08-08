@@ -1,7 +1,10 @@
 import { Response } from 'express';
 import { Bydel, getBydelerData, getPostStedArray, PostSted } from './data.js';
 import { removeDuplicates, normalizeString, SearchHit } from './utils.js';
-import { fetchOfficeInfoAndTransformResult } from './fetch.js';
+import {
+    fetchOfficeInfoAndTransformResult,
+    FetchOfficeInfoProps,
+} from './fetch.js';
 
 const findBydeler = (term: string) => {
     return getBydelerData().filter((bydel) =>
@@ -27,36 +30,46 @@ const generateResponseData = async (
     bydeler: Bydel[]
 ): Promise<SearchHit[]> => {
     const responseData: SearchHit[] = [];
-    const addIfNotNull = (officeInfo: SearchHit | null) =>
-        officeInfo && responseData.push(officeInfo);
+    const fetchProps: FetchOfficeInfoProps[] = [];
 
     for (const poststed of poststeder) {
         if (poststed.bydeler) {
             for (const bydel of poststed.bydeler) {
-                addIfNotNull(
-                    await fetchOfficeInfoAndTransformResult(
-                        bydel.bydelsnr,
-                        poststed.poststed
-                    )
-                );
+                fetchProps.push({
+                    geografiskNr: bydel.bydelsnr,
+                    hitString: poststed.poststed,
+                });
             }
         } else {
-            addIfNotNull(
-                await fetchOfficeInfoAndTransformResult(
-                    poststed.kommunenr,
-                    poststed.poststed
-                )
-            );
+            fetchProps.push({
+                geografiskNr: poststed.kommunenr,
+                hitString: poststed.poststed,
+            });
         }
     }
 
     for (const bydel of bydeler) {
-        addIfNotNull(
-            await fetchOfficeInfoAndTransformResult(bydel.bydelsnr, bydel.navn)
-        );
+        fetchProps.push({
+            geografiskNr: bydel.bydelsnr,
+            hitString: bydel.navn,
+        });
     }
 
-    return responseData;
+    const fetchPropsUnique = removeDuplicates(
+        fetchProps,
+        (a: FetchOfficeInfoProps, b: FetchOfficeInfoProps) =>
+            a.geografiskNr === b.geografiskNr
+    );
+
+    for (const props of fetchPropsUnique) {
+        const officeInfo = await fetchOfficeInfoAndTransformResult(props);
+
+        if (officeInfo) {
+            responseData.push(officeInfo);
+        }
+    }
+
+    return removeDuplicates(responseData);
 };
 
 export const responseFromNameSearch = async (

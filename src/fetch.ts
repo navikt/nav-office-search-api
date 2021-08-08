@@ -30,6 +30,8 @@ export type AdresseDataList = {
     bydel: string;
 };
 
+export type FetchOfficeInfoProps = { geografiskNr: string; hitString: string };
+
 type TpsPostnrSokResponse = {
     error: undefined;
     adresseDataList: AdresseDataList[];
@@ -138,10 +140,10 @@ const fetchNorgNavkontor = async (
 ): Promise<NorgNavkontorResponse | ErrorResponse> =>
     await fetchJson(`${norg2NavkontorApi}/${geografiskNr}`);
 
-export const fetchOfficeInfoAndTransformResult = async (
-    geografiskNr: string,
-    hitString: string
-): Promise<SearchHit | null> => {
+export const fetchOfficeInfoAndTransformResult = async ({
+    geografiskNr,
+    hitString,
+}: FetchOfficeInfoProps): Promise<SearchHit | null> => {
     const officeInfoRaw = await fetchNorgNavkontor(geografiskNr);
 
     if (officeInfoRaw.error) {
