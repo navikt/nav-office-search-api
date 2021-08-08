@@ -1,6 +1,10 @@
 import { Response } from 'express';
-import { fetchOfficeInfo, fetchTpsPostnrSok } from './fetch.js';
-import { filterDuplicates } from './utils.js';
+import {
+    AdresseDataList,
+    fetchOfficeInfoAndTransformResult,
+    fetchTpsPostnrSok,
+} from './fetch.js';
+import { removeDuplicates } from './utils.js';
 
 export const responseFromPostnrSearch = async (
     res: Response,
@@ -16,11 +20,24 @@ export const responseFromPostnrSearch = async (
     const { adresseDataList } = apiRes;
 
     if (adresseDataList) {
-        const geografiskTilknytningNumbers = filterDuplicates(
-            adresseDataList.map((item) => item.geografiskTilknytning)
+        const adresseDataListFiltered = removeDuplicates(
+            adresseDataList,
+            (a: AdresseDataList, b: AdresseDataList) =>
+                a.geografiskTilknytning === b.geografiskTilknytning
         );
 
-        const offices = await fetchOfficeInfo(geografiskTilknytningNumbers);
+        const offices = [];
+
+        for (const adresse of adresseDataListFiltered) {
+            const officeInfo = await fetchOfficeInfoAndTransformResult(
+                adresse.geografiskTilknytning,
+                adresse.poststed
+            );
+
+            if (officeInfo) {
+                offices.push(officeInfo);
+            }
+        }
 
         return res.status(200).send(offices);
     }

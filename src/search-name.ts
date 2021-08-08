@@ -1,28 +1,63 @@
 import { Response } from 'express';
-import {
-    GeografiskData,
-    getBydelerData,
-    getKommunerData,
-    getPostNrData,
-} from './data.js';
-import { normalizeString } from './utils.js';
-import { fetchOfficeInfo } from './fetch.js';
+import { Bydel, getBydelerData, getPostStedArray, PostSted } from './data.js';
+import { removeDuplicates, normalizeString, SearchHit } from './utils.js';
+import { fetchOfficeInfoAndTransformResult } from './fetch.js';
 
-const filterDataAndGetCodesFromNameSearch = (
-    dataArray: GeografiskData[],
-    name: string
-) =>
-    dataArray.reduce((acc, item) => {
-        if (item.name.includes(name)) {
-            if (item.bydeler) {
-                return [...acc, ...item.bydeler.map((bydel) => bydel.code)];
+const findBydeler = (term: string) => {
+    return getBydelerData().filter((bydel) =>
+        bydel.navnNormalized.includes(term)
+    );
+};
+
+const findPoststeder = (term: string): PostSted[] => {
+    const results = getPostStedArray().reduce(
+        (acc, item) =>
+            item.poststedNormalized.includes(term) ? [...acc, item] : acc,
+        [] as PostSted[]
+    );
+
+    return removeDuplicates(
+        results,
+        (a: PostSted, b: PostSted) => a.kommunenr === b.kommunenr
+    );
+};
+
+const generateResponseData = async (
+    poststeder: PostSted[],
+    bydeler: Bydel[]
+): Promise<SearchHit[]> => {
+    const responseData: SearchHit[] = [];
+    const addIfNotNull = (officeInfo: SearchHit | null) =>
+        officeInfo && responseData.push(officeInfo);
+
+    for (const poststed of poststeder) {
+        if (poststed.bydeler) {
+            for (const bydel of poststed.bydeler) {
+                addIfNotNull(
+                    await fetchOfficeInfoAndTransformResult(
+                        bydel.bydelsnr,
+                        poststed.poststed
+                    )
+                );
             }
-
-            return [...acc, item.code];
+        } else {
+            addIfNotNull(
+                await fetchOfficeInfoAndTransformResult(
+                    poststed.kommunenr,
+                    poststed.poststed
+                )
+            );
         }
+    }
 
-        return acc;
-    }, [] as string[]);
+    for (const bydel of bydeler) {
+        addIfNotNull(
+            await fetchOfficeInfoAndTransformResult(bydel.bydelsnr, bydel.navn)
+        );
+    }
+
+    return responseData;
+};
 
 export const responseFromNameSearch = async (
     res: Response,
@@ -30,13 +65,14 @@ export const responseFromNameSearch = async (
 ) => {
     const normalizedTerm = normalizeString(searchTerm);
 
-    const bydelerHits = getBydelerData().filter((bydel) =>
-        bydel.name.includes(normalizedTerm)
+    const poststederHits = findPoststeder(normalizedTerm);
+
+    const bydelerHits = findBydeler(normalizedTerm);
+
+    const responseData = await generateResponseData(
+        poststederHits,
+        bydelerHits
     );
 
-    const poststederHits = Object.entries(getPostNrData()).filter(
-        ([postnr, data]) => data.poststedNormalized.includes(normalizedTerm)
-    );
-
-    return res.status(200).send([...bydelerHits, ...poststederHits]);
+    return res.status(200).send(responseData);
 };

@@ -1,7 +1,7 @@
 import express from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
 import { responseFromNameSearch } from './search-name.js';
-import { getPostNrData, loadData } from './data.js';
+import { loadData } from './data.js';
 
 const app = express();
 const appPort = 3003;

@@ -1,6 +1,7 @@
 import fetch, { HeadersInit } from 'node-fetch';
 import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
+import { SearchHit } from './utils.js';
 
 const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API as string;
 const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API as string;
@@ -15,9 +16,43 @@ const cache = new Cache({
     stdTTL: oneDayInSeconds,
 });
 
+export type AdresseDataList = {
+    kommunenummer: string;
+    kommunenavn: string;
+    adressenavn: string;
+    husnummerFra: string;
+    husnummerTil: string;
+    postnummer: string;
+    poststed: string;
+    geografiskTilknytning: string;
+    gatekode: string;
+    bydel: string;
+};
+
 type TpsPostnrSokResponse = {
     error: undefined;
-    adresseDataList: { geografiskTilknytning: string }[];
+    adresseDataList: AdresseDataList[];
+};
+
+type NorgNavkontorResponse = {
+    error: undefined;
+    enhetId: number;
+    navn: string;
+    enhetNr: string;
+    antallRessurser: number;
+    status: string;
+    orgNivaa: string;
+    type: string;
+    organisasjonsnummer: string;
+    underEtableringDato: string;
+    aktiveringsdato: string;
+    underAvviklingDato: string;
+    nedleggelsesdato: string;
+    oppgavebehandler: boolean;
+    versjon: number;
+    sosialeTjenester: string;
+    kanalstrategi: string;
+    orgNrTilKommunaltNavKontor: string;
 };
 
 type ErrorResponse = {
@@ -97,20 +132,28 @@ export const fetchTpsPostnrSok = async (
     );
 };
 
-export const fetchOfficeInfo = async (geografiskTilknytningArray: string[]) => {
-    const officeInfo = [];
+const fetchNorgNavkontor = async (
+    geografiskNr: string
+): Promise<NorgNavkontorResponse | ErrorResponse> =>
+    await fetchJson(`${norg2NavkontorApi}/${geografiskNr}`);
 
-    for (const gtNumber of geografiskTilknytningArray) {
-        const norg2Res = await fetchJson(`${norg2NavkontorApi}/${gtNumber}`);
+export const fetchOfficeInfoAndTransformResult = async (
+    geografiskNr: string,
+    hitString: string
+): Promise<SearchHit | null> => {
+    const officeInfoRaw = await fetchNorgNavkontor(geografiskNr);
 
-        if (!norg2Res.error) {
-            officeInfo.push(norg2Res);
-        } else {
-            console.error(norg2Res.message);
-        }
+    if (officeInfoRaw.error) {
+        console.error(`Error fetching office info: ${officeInfoRaw.message}`);
+        return null;
     }
 
-    return officeInfo;
+    return {
+        kontorNavn: officeInfoRaw.navn,
+        enhetNr: officeInfoRaw.enhetNr,
+        status: officeInfoRaw.status,
+        hitString: hitString,
+    };
 };
 
 export const fetchPostnrRegister = async (): Promise<string> => {

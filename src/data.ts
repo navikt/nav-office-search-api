@@ -4,10 +4,24 @@ import { normalizeString } from './utils.js';
 import { fetchPostnrRegister } from './fetch.js';
 import Cache from 'node-cache';
 
-export type GeografiskData = {
-    code: string;
-    name: string;
-    bydeler?: GeografiskData[];
+export type Bydel = {
+    bydelsnr: string;
+    navn: string;
+    navnNormalized: string;
+};
+
+export type BydelerMap = { [kommunenr: string]: Bydel[] };
+
+export type PostSted = {
+    postnr: string;
+    poststedNormalized: string;
+    poststed: string;
+    kommunenr: string;
+    bydeler?: Bydel[];
+};
+
+export type PostStedMap = {
+    [postnr: string]: PostSted;
 };
 
 type PostNrRegisterItem = [
@@ -18,55 +32,36 @@ type PostNrRegisterItem = [
     kategori: 'B' | 'F' | 'G' | 'P' | 'S'
 ];
 
-export type PostNrData = {
-    [postnr: string]: {
-        poststedNormalized: string;
-        kommuneNormalized: string;
-        poststed: string;
-        kommunenr: string;
-        kommune: string;
-    };
-};
-
 const postnrRegisterCacheKey = 'postnrRegister';
 const postNrDataCache = new Cache({
     stdTTL: 3600,
     deleteOnExpire: false,
 });
 
-const getBydelerFromKommune = (kommuneNr: string) =>
-    bydelerData.filter((bydel) => bydel.code.startsWith(kommuneNr));
-
-const transformPostnrRegisterData = (rawText: string): PostNrData => {
+const transformPostnrRegisterData = (rawText: string): PostStedMap => {
     const itemsRaw = rawText.split('\n');
 
     return itemsRaw.reduce((acc, itemRaw) => {
         const item = itemRaw.split('\t') as PostNrRegisterItem;
-        const [postnr, poststed, kommunenr, kommune] = item;
+        const [postnr, poststed, kommunenr] = item;
+        const bydeler = kommuneNrToBydelerMap[kommunenr];
 
         return {
             ...acc,
             [postnr]: {
                 poststedNormalized: normalizeString(poststed),
-                kommuneNormalized: normalizeString(kommune),
+                postnr,
                 poststed,
                 kommunenr,
-                kommune,
+                ...(bydeler && { bydeler }),
             },
         };
     }, {});
 };
 
-export const getPostNrData = (): PostNrData =>
-    postNrDataCache.get(postnrRegisterCacheKey) as PostNrData;
+const bydelerData: Bydel[] = [];
 
-export const getBydelerData = () => bydelerData;
-
-export const getKommunerData = () => kommunerData;
-
-const bydelerData: GeografiskData[] = [];
-
-const kommunerData: GeografiskData[] = [];
+const kommuneNrToBydelerMap: BydelerMap = {};
 
 const loadPostnrData = async () => {
     const result = await fetchPostnrRegister().then(
@@ -78,43 +73,43 @@ const loadPostnrData = async () => {
     console.log('Finished loading postnr register');
 };
 
-const loadKommunerData = () => {
-    fs.createReadStream('./data/kommuner.csv', { encoding: 'latin1' })
-        .pipe(csv({ separator: ';' }))
-        .on('data', (data) => {
-            const bydeler = getBydelerFromKommune(data.code);
-
-            kommunerData.push({
-                code: data.code,
-                name: normalizeString(data.name),
-                ...(bydeler.length > 0 && { bydeler }),
-            });
-        })
-        .on('end', () => {
-            console.log('Finished loading kommuner');
-        });
-};
-
-const loadBydelerAndKommunerData = () => {
+const loadBydelerData = () => {
     fs.createReadStream('./data/bydeler.csv', { encoding: 'latin1' })
         .pipe(csv({ separator: ';' }))
         .on('data', (data) => {
             if (data.name !== 'Uoppgitt') {
-                bydelerData.push({
-                    code: data.code,
-                    name: normalizeString(data.name),
-                });
+                const bydel = {
+                    bydelsnr: data.code,
+                    navn: data.name,
+                    navnNormalized: normalizeString(data.name),
+                };
+
+                const kommunenr = data.code.substr(0, 4);
+                if (!kommuneNrToBydelerMap[kommunenr]) {
+                    kommuneNrToBydelerMap[kommunenr] = [];
+                }
+
+                bydelerData.push(bydel);
+                kommuneNrToBydelerMap[kommunenr].push(bydel);
             }
         })
         .on('end', () => {
             console.log('Finished loading bydeler');
-            loadKommunerData();
+            loadPostnrData();
         });
 };
 
+export const getPostStedMap = (): PostStedMap =>
+    postNrDataCache.get(postnrRegisterCacheKey) as PostStedMap;
+
+export const getPostStedArray = (): PostSted[] =>
+    Object.values(postNrDataCache.get(postnrRegisterCacheKey) as PostStedMap);
+
+export const getBydelerData = (): Bydel[] => bydelerData;
+
 export const loadData = () => {
-    loadBydelerAndKommunerData();
-    loadPostnrData();
+    loadBydelerData();
+
     postNrDataCache.on('expired', (key) => {
         if (key === postnrRegisterCacheKey) {
             loadPostnrData();

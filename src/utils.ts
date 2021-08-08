@@ -1,3 +1,10 @@
+export type SearchHit = {
+    kontorNavn: string;
+    enhetNr: string;
+    status: string;
+    hitString: string;
+};
+
 const charMap: { [key: string]: string } = {
     æ: 'ae',
     ø: 'o',
@@ -26,15 +33,15 @@ export const normalizeString = (str: string) =>
         .replace(/\p{Diacritic}/gu, '')
         .replace(replaceSpecialCharPattern, replaceSpecialCharFunc);
 
-export const filterDuplicates = (
-    array: any[],
+export const removeDuplicates = <Type>(
+    array: Type[],
     isEqualPredicate?: (a: any, b: any) => boolean
-) =>
+): Type[] =>
     isEqualPredicate
-        ? array.filter((aItem, aIndex) =>
-              array.find(
-                  (bItem, bIndex) =>
-                      isEqualPredicate(aItem, bItem) && aIndex === bIndex
-              )
-          )
+        ? array.filter((aItem, aIndex) => {
+              const bIndex = array.findIndex((bItem) =>
+                  isEqualPredicate(aItem, bItem)
+              );
+              return aIndex === bIndex;
+          })
         : [...new Set(array)];
