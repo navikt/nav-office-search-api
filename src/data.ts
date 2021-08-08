@@ -10,8 +10,6 @@ export type Bydel = {
     navnNormalized: string;
 };
 
-export type BydelerMap = { [kommunenr: string]: Bydel[] };
-
 export type Poststed = {
     postnr: string;
     poststedNormalized: string;
@@ -19,6 +17,8 @@ export type Poststed = {
     kommunenr: string;
     bydeler?: Bydel[];
 };
+
+type BydelerMap = { [kommunenr: string]: Bydel[] };
 
 type PostnrRegisterItem = [
     postnr: string,
