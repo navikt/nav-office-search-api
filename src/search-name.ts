@@ -1,6 +1,11 @@
 import { Response } from 'express';
-import { bydelerData, GeografiskData, kommunerData } from './data.js';
-import { sanitizeString } from './utils.js';
+import {
+    GeografiskData,
+    getBydelerData,
+    getKommunerData,
+    getPostNrData,
+} from './data.js';
+import { normalizeString } from './utils.js';
 import { fetchOfficeInfo } from './fetch.js';
 
 const filterDataAndGetCodesFromNameSearch = (
@@ -19,23 +24,19 @@ const filterDataAndGetCodesFromNameSearch = (
         return acc;
     }, [] as string[]);
 
-export const responseFromNameSearch = async (res: Response, text: string) => {
-    const sanitizedText = sanitizeString(text);
+export const responseFromNameSearch = async (
+    res: Response,
+    searchTerm: string
+) => {
+    const normalizedTerm = normalizeString(searchTerm);
 
-    const kommunerHits = filterDataAndGetCodesFromNameSearch(
-        kommunerData,
-        sanitizedText
+    const bydelerHits = getBydelerData().filter((bydel) =>
+        bydel.name.includes(normalizedTerm)
     );
 
-    const bydelerHits = filterDataAndGetCodesFromNameSearch(
-        bydelerData,
-        sanitizedText
+    const poststederHits = Object.entries(getPostNrData()).filter(
+        ([postnr, data]) => data.poststedNormalized.includes(normalizedTerm)
     );
 
-    console.log(bydelerHits);
-    console.log(kommunerHits);
-
-    const offices = await fetchOfficeInfo([...bydelerHits, ...kommunerHits]);
-
-    return res.status(200).send(offices);
+    return res.status(200).send([...bydelerHits, ...poststederHits]);
 };

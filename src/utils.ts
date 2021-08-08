@@ -1,14 +1,11 @@
 const charMap: { [key: string]: string } = {
     æ: 'ae',
     ø: 'o',
-    å: 'a',
-    á: 'a',
-    č: 'c',
     đ: 'd',
     ŋ: 'n',
-    š: 's',
     ŧ: 't',
-    ž: 'z',
+    '.': '',
+    ' ': '-',
 };
 
 const charsToReplace = Object.keys(charMap).reduce((acc, char) => {
@@ -17,11 +14,27 @@ const charsToReplace = Object.keys(charMap).reduce((acc, char) => {
 
 const replaceSpecialCharPattern = new RegExp(`[${charsToReplace}]`, 'g');
 
-const replaceSpecialCharFunc = (match: string) => charMap[match] || match;
+const replaceSpecialCharFunc = (match: string) => {
+    const newChar = charMap[match];
+    return newChar !== undefined ? newChar : match;
+};
 
-export const sanitizeString = (str: string) =>
+export const normalizeString = (str: string) =>
     str
         .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
         .replace(replaceSpecialCharPattern, replaceSpecialCharFunc);
 
-export const filterDuplicates = (array: any[]) => [...new Set(array)];
+export const filterDuplicates = (
+    array: any[],
+    isEqualPredicate?: (a: any, b: any) => boolean
+) =>
+    isEqualPredicate
+        ? array.filter((aItem, aIndex) =>
+              array.find(
+                  (bItem, bIndex) =>
+                      isEqualPredicate(aItem, bItem) && aIndex === bIndex
+              )
+          )
+        : [...new Set(array)];

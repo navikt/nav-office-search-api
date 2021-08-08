@@ -5,15 +5,20 @@ import { v4 as uuid } from 'uuid';
 const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API as string;
 const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API as string;
 
-const bringPostnrRegister = 'https://www.bring.no/postnummerregister-ansi.txt';
+const bringPostnrRegisterUrl =
+    'https://www.bring.no/postnummerregister-ansi.txt';
 
 const oneDayInSeconds = 24 * 60 * 60;
-const postnrRegisterCacheKey = 'postnrRegister';
 
 // TODO: legg til caching på api-fetch fra norg2 og tpsws
 const cache = new Cache({
     stdTTL: oneDayInSeconds,
 });
+
+type TpsPostnrSokResponse = {
+    error: undefined;
+    adresseDataList: { geografiskTilknytning: string }[];
+};
 
 type ErrorResponse = {
     error: true;
@@ -21,7 +26,11 @@ type ErrorResponse = {
     message: string;
 };
 
-const errorResponse = (code: number, message: string, url: string) => ({
+const errorResponse = (
+    code: number,
+    message: string,
+    url: string
+): ErrorResponse => ({
     error: true,
     statusCode: code,
     message: `Error ${code} fetching JSON from ${url} - ${message}`,
@@ -75,11 +84,6 @@ export const fetchJson = async (
     }
 };
 
-type TpsPostnrSokResponse = {
-    error: undefined;
-    adresseDataList: { geografiskTilknytning: string }[];
-};
-
 export const fetchTpsPostnrSok = async (
     postnr: string
 ): Promise<TpsPostnrSokResponse | ErrorResponse> => {
@@ -109,15 +113,7 @@ export const fetchOfficeInfo = async (geografiskTilknytningArray: string[]) => {
     return officeInfo;
 };
 
-export const fetchPostnrRegister = async () => {
-    if (cache.has(postnrRegisterCacheKey)) {
-        return cache.get(postnrRegisterCacheKey) as string;
-    }
-
-    const postnrRegisterData = await fetch(bringPostnrRegister).then((res) =>
-        res.text()
-    );
-    cache.set(postnrRegisterCacheKey, postnrRegisterData);
-
-    return postnrRegisterData;
+export const fetchPostnrRegister = async (): Promise<string> => {
+    // TODO: error handling
+    return fetch(bringPostnrRegisterUrl).then((res) => res.text());
 };

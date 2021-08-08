@@ -1,6 +1,7 @@
 import express from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
 import { responseFromNameSearch } from './search-name.js';
+import { getPostNrData, loadData } from './data.js';
 
 const app = express();
 const appPort = 3003;
@@ -30,6 +31,7 @@ app.get('/internal/isReady', (req, res) => {
 });
 
 const server = app.listen(appPort, () => {
+    loadData();
     console.log(`Server starting on port ${appPort}`);
 });
 
