@@ -6,6 +6,8 @@ import { loadData } from './data.js';
 const app = express();
 const appPort = 3003;
 
+let isReady = false;
+
 app.get('/api', async (req, res) => {
     const { postnr, name } = req.query;
 
@@ -27,11 +29,16 @@ app.get('/internal/isAlive', (req, res) => {
 });
 
 app.get('/internal/isReady', (req, res) => {
-    return res.status(200).send('Ok!');
+    if (isReady) {
+        return res.status(200).send('Ok!');
+    }
+    return res.status(503).send('Not ready');
 });
 
 const server = app.listen(appPort, () => {
-    loadData();
+    loadData(() => {
+        isReady = true;
+    });
     console.log(`Server starting on port ${appPort}`);
 });
 

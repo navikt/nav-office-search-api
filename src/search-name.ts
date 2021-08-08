@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { Bydel, getBydelerData, getPostStedArray, PostSted } from './data.js';
+import { Bydel, getBydelerData, getPoststedData, Poststed } from './data.js';
 import { removeDuplicates, normalizeString, SearchHit } from './utils.js';
 import {
     fetchOfficeInfoAndTransformResult,
@@ -12,21 +12,21 @@ const findBydeler = (term: string) => {
     );
 };
 
-const findPoststeder = (term: string): PostSted[] => {
-    const results = getPostStedArray().reduce(
+const findPoststeder = (term: string): Poststed[] => {
+    const results = getPoststedData().reduce(
         (acc, item) =>
             item.poststedNormalized.includes(term) ? [...acc, item] : acc,
-        [] as PostSted[]
+        [] as Poststed[]
     );
 
     return removeDuplicates(
         results,
-        (a: PostSted, b: PostSted) => a.kommunenr === b.kommunenr
+        (a: Poststed, b: Poststed) => a.kommunenr === b.kommunenr
     );
 };
 
 const generateResponseData = async (
-    poststeder: PostSted[],
+    poststeder: Poststed[],
     bydeler: Bydel[]
 ): Promise<SearchHit[]> => {
     const responseData: SearchHit[] = [];
