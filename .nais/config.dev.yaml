@@ -25,12 +25,23 @@ spec:
     - name: {{this.name}}
       value: {{this.value}}
   {{/each}}
+  webproxy: true
+  azure:
+    application:
+      enabled: true
+      tenant: trygdeetaten.no
+  accessPolicy:
+    inbound:
+      rules:
+        - application: nav-office-search
+          namespace: personbruker
+          cluster: dev-gcp
   replicas:
-    min: 1
-    max: 1
+    min: 2
+    max: 4
   resources:
     limits:
       cpu: '2'
-      memory: 256Mi
+      memory: 512Mi
     requests:
-      memory: 256Mi
+      memory: 512Mi
