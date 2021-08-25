@@ -2,6 +2,7 @@ import express from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
 import { responseFromNameSearch } from './search-name.js';
 import { loadData } from './data.js';
+import { validateAuthorizationHeader } from './auth.js';
 
 const app = express();
 const appPort = 3003;
@@ -9,6 +10,11 @@ const appPort = 3003;
 let isReady = false;
 
 app.get('/api', async (req, res) => {
+    const { authorization } = req.headers;
+
+    if (!validateAuthorizationHeader(authorization)) {
+    }
+
     const { postnr, name } = req.query;
 
     if (typeof postnr === 'string') {
