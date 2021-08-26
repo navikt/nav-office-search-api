@@ -13,14 +13,18 @@ const verifySigningKey = async (kid: string) => {
     return !!key.getPublicKey();
 };
 
-export const validateAuthorizationHeader = async (authorizationHeader: string) => {
+const decodeBase64 = (str: string) => Buffer.from(str, 'base64').toString();
+
+export const validateAuthorizationHeader = async (
+    authorizationHeader: string
+) => {
     const clientSecret = process.env.AZURE_APP_CLIENT_SECRET;
     if (!clientSecret) {
         console.error('Client secret was not provided');
         return false;
     }
 
-    const accessToken = Buffer.from(authorizationHeader, 'base64').toString();
+    const accessToken = decodeBase64(authorizationHeader);
 
     try {
         const decodedToken = jwt.verify(accessToken, clientSecret, {
@@ -36,12 +40,12 @@ export const validateAuthorizationHeader = async (authorizationHeader: string) =
         const kid = decodedToken.header.kid;
 
         if (!kid) {
-            console.error('kid header was not provided')
+            console.error('kid header was not provided');
             return false;
         }
 
-        if (!await verifySigningKey(kid)) {
-            console.error('No matching signing key found')
+        if (!(await verifySigningKey(kid))) {
+            console.error('No matching signing key found');
             return false;
         }
 
