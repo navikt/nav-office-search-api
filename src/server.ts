@@ -12,7 +12,12 @@ let isReady = false;
 app.get('/api', async (req, res) => {
     const { authorization } = req.headers;
 
-    if (!validateAuthorizationHeader(authorization)) {
+    if (!authorization) {
+        return res.status(401).send('Authorization header required');
+    }
+
+    if (!await validateAuthorizationHeader(authorization)) {
+        return res.status(401).send('Failed to validate authorization header')
     }
 
     const { postnr, name } = req.query;
@@ -45,6 +50,10 @@ const server = app.listen(appPort, () => {
     loadData(() => {
         isReady = true;
     });
+    console.log(`Client id: ${process.env.AZURE_APP_CLIENT_ID}`)
+    console.log(`JWKS URI: ${process.env.AZURE_APP_JWKS}`)
+    console.log(`Pre-authed apps: ${process.env.AZURE_APP_PRE_AUTHORIZED_APPS}`)
+    console.log(`Tenant id: ${process.env.AZURE_APP_TENANT_ID}`)
     console.log(`Server starting on port ${appPort}`);
 });
 

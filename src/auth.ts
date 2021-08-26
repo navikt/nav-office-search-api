@@ -1,23 +1,22 @@
 import jwt from 'jsonwebtoken';
-import jwksClient from 'jwks-rsa';
-import Cache from 'node-cache';
+import jwks from 'jwks-rsa';
 
-const jwksClientInstance = jwksClient({
+const oneHourInMs = 60 * 60 * 1000;
+
+const jwksClient = jwks({
     jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI as string,
-    cacheMaxAge: 3600,
+    cacheMaxAge: oneHourInMs,
 });
 
-const verifyKid = (kid: string) => {};
+const verifySigningKey = async (kid: string) => {
+    const key = await jwksClient.getSigningKey(kid);
+    return !!key.getPublicKey();
+};
 
-export const validateAuthorizationHeader = (authorizationHeader?: string) => {
-    if (!authorizationHeader) {
-        console.error('Authorization header was not provided');
-        return false;
-    }
-
+export const validateAuthorizationHeader = async (authorizationHeader: string) => {
     const clientSecret = process.env.AZURE_APP_CLIENT_SECRET;
     if (!clientSecret) {
-        console.error('Client secret not available');
+        console.error('Client secret was not provided');
         return false;
     }
 
@@ -34,7 +33,19 @@ export const validateAuthorizationHeader = (authorizationHeader?: string) => {
             return false;
         }
 
-        decodedToken.header.kid;
+        const kid = decodedToken.header.kid;
+
+        if (!kid) {
+            console.error('kid header was not provided')
+            return false;
+        }
+
+        if (!await verifySigningKey(kid)) {
+            console.error('No matching signing key found')
+            return false;
+        }
+
+        return true;
     } catch (e) {
         console.error(`Failed to verify access token - ${e}`);
         return false;
