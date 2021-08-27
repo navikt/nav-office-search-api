@@ -32,7 +32,7 @@ export const validateAccessToken = (
         getSigningKey,
         {
             algorithms: ['RS256', 'RS384', 'RS512'],
-            audience: process.env.API_CLIENT_ID,
+            audience: process.env.AZURE_APP_CLIENT_ID,
         },
         callback
     );

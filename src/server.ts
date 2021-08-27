@@ -51,7 +51,7 @@ const server = app.listen(appPort, () => {
         isReady = true;
     });
     console.log(`Client id: ${process.env.AZURE_APP_CLIENT_ID}`);
-    console.log(`JWKS URI: ${process.env.AZURE_APP_JWKS}`);
+    console.log(`JWKS URI: ${process.env.AZURE_OPENID_CONFIG_JWKS_URI}`);
     console.log(
         `Pre-authed apps: ${process.env.AZURE_APP_PRE_AUTHORIZED_APPS}`
     );
