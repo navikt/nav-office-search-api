@@ -36,6 +36,10 @@ spec:
         - application: nav-office-search
           namespace: personbruker
           cluster: dev-gcp
+    outbound:
+      external:
+        - host: login.microsoftonline.com
+        - host: www.bring.no
   replicas:
     min: 2
     max: 4
