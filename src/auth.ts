@@ -23,10 +23,7 @@ const getSigningKey = async (
     callback(undefined, key.getPublicKey());
 };
 
-export const validateAccessToken = (
-    accessToken: string,
-    callback: VerifyCallback
-) => {
+const validateAccessToken = (accessToken: string, callback: VerifyCallback) => {
     jwt.verify(
         accessToken,
         getSigningKey,
@@ -38,26 +35,31 @@ export const validateAccessToken = (
     );
 };
 
+const parseAccessToken = (req: Request) => {
+    const { authorization } = req.headers;
+
+    if (
+        typeof authorization !== 'string' ||
+        !authorization.startsWith('Bearer ')
+    ) {
+        return null;
+    }
+
+    decodeBase64(authorization.replace('Bearer ', ''));
+};
+
 export const validateAndProcessRequest = (
     req: Request,
     res: Response,
     callback: (req: Request, res: Response) => any
 ) => {
-    const { authorization } = req.headers;
+    const accessToken = parseAccessToken(req);
 
-    console.log(req.headers);
-
-    if (typeof authorization !== 'string') {
+    if (!accessToken) {
         return res
             .status(401)
-            .json({ message: 'Missing authorization header' });
+            .json({ message: 'Missing or malformed authorization header' });
     }
-
-    if (!authorization.startsWith('Bearer')) {
-        return res.status(401).json({ message: 'Wrong authorization scheme' });
-    }
-
-    const accessToken = decodeBase64(authorization.replace('Bearer ', ''));
 
     validateAccessToken(accessToken, (error, decodedToken) => {
         if (error) {
