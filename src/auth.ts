@@ -43,17 +43,17 @@ export const validateAndProcessRequest = (
     res: Response,
     callback: (req: Request, res: Response) => any
 ) => {
-    const { Authorization } = req.headers;
+    const { authorization } = req.headers;
 
-    console.log(req.headers, Authorization);
+    console.log(req.headers, authorization);
 
-    if (typeof Authorization !== 'string') {
+    if (typeof authorization !== 'string') {
         return res
             .status(401)
             .json({ message: 'Missing authorization header' });
     }
 
-    const accessToken = decodeBase64(Authorization);
+    const accessToken = decodeBase64(authorization);
 
     validateAccessToken(accessToken, (error, decodedToken) => {
         if (error) {
