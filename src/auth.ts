@@ -1,8 +1,8 @@
 import jwt, { GetPublicKeyOrSecret, VerifyCallback } from 'jsonwebtoken';
 import jwks from 'jwks-rsa';
 import { Request, Response } from 'express';
-import { decodeBase64 } from './utils.js';
 import HttpsProxyAgent from 'https-proxy-agent';
+import { decodeBase64 } from './utils.js';
 
 const oneHourInMs = 60 * 60 * 1000;
 
