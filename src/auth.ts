@@ -15,8 +15,8 @@ const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY as string);
 
 const jwksClient = jwks({
     jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI as string,
-    cache: false,
-    // cacheMaxAge: oneHourInMs,
+    cache: true,
+    cacheMaxAge: oneHourInMs,
     requestAgent: proxyAgent,
 });
 
@@ -83,7 +83,9 @@ export const validateAndProcessRequest = (
             return callback(req, res);
         }
 
-        console.error('Invalid callback response from jwt validator');
+        // The callback from jwt.verify should always include either the first
+        // or second parameter. But just in case it does not...
+        console.error('Invalid callback from jwt validator');
         return res.status(500);
     });
 };
