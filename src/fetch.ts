@@ -3,8 +3,8 @@ import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
 import { SearchHit } from './utils.js';
 
-const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API as string;
-const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API as string;
+const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API;
+const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API;
 
 const norgCache = new Cache({
     stdTTL: 3600,
