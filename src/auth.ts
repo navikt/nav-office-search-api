@@ -4,8 +4,8 @@ import jwt, {
     VerifyCallback,
 } from 'jsonwebtoken';
 import jwks from 'jwks-rsa';
-import { decodeBase64 } from './utils';
 import { Request, Response } from 'express';
+import { decodeBase64 } from './utils.js';
 
 const oneHourInMs = 60 * 60 * 1000;
 
