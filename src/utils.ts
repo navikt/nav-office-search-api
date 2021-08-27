@@ -2,7 +2,6 @@ export type SearchHit = {
     kontorNavn: string;
     enhetNr: string;
     status: string;
-    hitString: string;
 };
 
 const charMap: { [key: string]: string } = {

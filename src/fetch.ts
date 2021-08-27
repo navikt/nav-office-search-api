@@ -1,14 +1,10 @@
 import fetch, { HeadersInit } from 'node-fetch';
 import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
-import fs from 'fs';
 import { SearchHit } from './utils.js';
 
 const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API as string;
 const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API as string;
-
-const bringPostnrRegisterUrl =
-    'https://www.bring.no/postnummerregister-ansi.txt';
 
 const norgCache = new Cache({
     stdTTL: 3600,
@@ -26,8 +22,6 @@ export type AdresseDataList = {
     gatekode: string;
     bydel: string;
 };
-
-export type FetchOfficeInfoProps = { geografiskNr: string; hitString: string };
 
 type TpsPostnrSokResponse = {
     error: undefined;
@@ -150,10 +144,9 @@ const fetchNorgNavkontor = async (
     return response;
 };
 
-export const fetchOfficeInfoAndTransformResult = async ({
-    geografiskNr,
-    hitString,
-}: FetchOfficeInfoProps): Promise<SearchHit | null> => {
+export const fetchOfficeInfoAndTransformResult = async (
+    geografiskNr: string
+): Promise<SearchHit | null> => {
     const officeInfoRaw = await fetchNorgNavkontor(geografiskNr);
 
     if (officeInfoRaw.error) {
@@ -165,25 +158,5 @@ export const fetchOfficeInfoAndTransformResult = async ({
         kontorNavn: officeInfoRaw.navn,
         enhetNr: officeInfoRaw.enhetNr,
         status: officeInfoRaw.status,
-        hitString: hitString,
     };
-};
-
-export const fetchPostnrRegister = async (): Promise<string> => {
-    try {
-        return await fetch(bringPostnrRegisterUrl).then((res) => {
-            if (res.ok) {
-                return res.text();
-            }
-
-            throw new Error(
-                `Error fetching postnr register: ${res.status} - ${res.statusText}`
-            );
-        });
-    } catch (e) {
-        console.error(`Error fetching postnr register: ${e}`);
-        return fs.readFileSync('./data/postnummerregister-ansi.txt', {
-            encoding: 'latin1',
-        });
-    }
 };

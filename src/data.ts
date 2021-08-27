@@ -1,8 +1,6 @@
 import fs from 'fs';
 import csv from 'csv-parser';
 import { normalizeString } from './utils.js';
-import { fetchPostnrRegister } from './fetch.js';
-import Cache from 'node-cache';
 
 export type Bydel = {
     bydelsnr: string;
@@ -20,54 +18,9 @@ export type Poststed = {
 
 type BydelerMap = { [kommunenr: string]: Bydel[] };
 
-type PostnrRegisterItem = [
-    postnr: string,
-    poststed: string,
-    kommunenr: string,
-    kommune: string,
-    kategori: 'B' | 'F' | 'G' | 'P' | 'S'
-];
-
-const postnrRegisterCacheKey = 'postnrRegister';
-const postNrDataCache = new Cache({
-    stdTTL: 3600,
-    deleteOnExpire: false,
-});
-
-const transformPostnrRegisterData = (rawText: string): Poststed[] => {
-    const itemsRaw = rawText.split('\n');
-
-    return itemsRaw.map((itemRaw) => {
-        const item = itemRaw.split('\t') as PostnrRegisterItem;
-        const [postnr, poststed, kommunenr] = item;
-        const bydeler = kommunenrToBydelerMap[kommunenr];
-
-        return {
-            poststedNormalized: normalizeString(poststed),
-            postnr,
-            poststed,
-            kommunenr,
-            ...(bydeler && { bydeler }),
-        };
-    });
-};
-
 const bydelerData: Bydel[] = [];
 
 const kommunenrToBydelerMap: BydelerMap = {};
-
-const loadPostnrData = async () => {
-    const result = await fetchPostnrRegister().then(
-        transformPostnrRegisterData
-    );
-
-    postNrDataCache.set(postnrRegisterCacheKey, result);
-
-    console.log('Loaded data from postnr register');
-};
-
-export const getPoststedData = (): Poststed[] =>
-    postNrDataCache.get(postnrRegisterCacheKey) as Poststed[];
 
 export const getBydelerData = (): Bydel[] => bydelerData;
 
@@ -93,12 +46,6 @@ export const loadData = (onFinish: () => void) => {
         })
         .on('end', () => {
             console.log('Loaded data for bydeler');
-            loadPostnrData().then(() => onFinish());
+            onFinish();
         });
-
-    postNrDataCache.on('expired', (key) => {
-        if (key === postnrRegisterCacheKey) {
-            loadPostnrData();
-        }
-    });
 };

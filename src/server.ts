@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
-import { responseFromNameSearch } from './search-name.js';
 import { loadData } from './data.js';
 import { validateAndProcessRequest } from './auth.js';
 
@@ -9,24 +8,38 @@ const appPort = 3003;
 
 let isReady = false;
 
-const processApiRequest = (req: Request, res: Response) => {
-    const { postnr, name } = req.query;
+const processPostnrRequest = (req: Request, res: Response) => {
+    const { postnr } = req.query;
 
     if (typeof postnr === 'string') {
         return responseFromPostnrSearch(res, postnr);
     }
 
-    if (typeof name === 'string') {
-        return responseFromNameSearch(res, name);
+    return res
+        .status(400)
+        .send("Invalid request - 'postnr' parameter is required");
+};
+
+const processOfficeInfoRequest = (req: Request, res: Response) => {
+    const { ids } = req.query;
+
+    if (typeof ids === 'string') {
+    }
+
+    if (Array.isArray(ids)) {
     }
 
     return res
         .status(400)
-        .send("Invalid request - 'postnr' or 'name' parameter is required");
+        .send("Invalid request - 'ids' parameter is required");
 };
 
-app.get('/api', async (req, res) =>
-    validateAndProcessRequest(req, res, processApiRequest)
+app.get('/postnr', async (req, res) =>
+    validateAndProcessRequest(req, res, processPostnrRequest)
+);
+
+app.get('/officeInfo', async (req, res) =>
+    validateAndProcessRequest(req, res, processOfficeInfoRequest)
 );
 
 app.get('/internal/isAlive', (req, res) => {

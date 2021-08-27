@@ -28,6 +28,8 @@ export const responseFromPostnrSearch = async (
 
     const { adresseDataList } = apiRes;
 
+    const hits = [];
+
     if (adresseDataList) {
         const adresseDataListFiltered = removeDuplicates(
             adresseDataList,
@@ -35,23 +37,18 @@ export const responseFromPostnrSearch = async (
                 a.geografiskTilknytning === b.geografiskTilknytning
         );
 
-        const offices = [];
-
         for (const adresse of adresseDataListFiltered) {
-            const officeInfo = await fetchOfficeInfoAndTransformResult({
-                geografiskNr: adresse.geografiskTilknytning,
-                hitString: adresse.poststed,
-            });
+            const officeInfo = await fetchOfficeInfoAndTransformResult(
+                adresse.geografiskTilknytning
+            );
 
             if (officeInfo) {
-                offices.push(officeInfo);
+                hits.push(officeInfo);
             }
         }
 
-        cache.set(postnr, offices);
-
-        return res.status(200).send(offices);
+        cache.set(postnr, hits);
     }
 
-    return res.status(200).send([]);
+    return res.status(200).send({ hits });
 };
