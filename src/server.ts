@@ -56,6 +56,13 @@ const server = app.listen(appPort, () => {
         `Pre-authed apps: ${process.env.AZURE_APP_PRE_AUTHORIZED_APPS}`
     );
     console.log(`Tenant id: ${process.env.AZURE_APP_TENANT_ID}`);
+
+    console.log(
+        'Proxies:',
+        process.env.HTTP_PROXY,
+        process.env.HTTPS_PROXY,
+        process.env.NO_PROXY
+    );
     console.log(`Server starting on port ${appPort}`);
 });
 

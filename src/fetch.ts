@@ -2,6 +2,7 @@ import fetch, { HeadersInit } from 'node-fetch';
 import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
 import fs from 'fs';
+import HttpsProxyAgent from 'https-proxy-agent';
 import { SearchHit } from './utils.js';
 
 const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API as string;
@@ -13,6 +14,9 @@ const bringPostnrRegisterUrl =
 const norgCache = new Cache({
     stdTTL: 3600,
 });
+
+// @ts-ignore
+const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY as string);
 
 export type AdresseDataList = {
     kommunenummer: string;
@@ -171,15 +175,17 @@ export const fetchOfficeInfoAndTransformResult = async ({
 
 export const fetchPostnrRegister = async (): Promise<string> => {
     try {
-        return await fetch(bringPostnrRegisterUrl).then((res) => {
-            if (res.ok) {
-                return res.text();
-            }
+        return await fetch(bringPostnrRegisterUrl, { agent: proxyAgent }).then(
+            (res) => {
+                if (res.ok) {
+                    return res.text();
+                }
 
-            throw new Error(
-                `Error fetching postnr register: ${res.status} - ${res.statusText}`
-            );
-        });
+                throw new Error(
+                    `Error fetching postnr register: ${res.status} - ${res.statusText}`
+                );
+            }
+        );
     } catch (e) {
         console.error(`Error fetching postnr register: ${e}`);
         return fs.readFileSync('./data/postnummerregister-ansi.txt', {
