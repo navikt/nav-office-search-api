@@ -1,16 +1,15 @@
 FROM node:16-alpine
 
 # Create app directory
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # Installing dependencies
-COPY package*.json /usr/src/app/
+COPY package*.json /app/
 RUN npm ci
 
 # Copy app source
-COPY src /usr/src/app/src/
-COPY tsconfig.json /usr/src/app/
+COPY src /app/src/
+COPY tsconfig.json /app/
 
 # Start app
 EXPOSE 3003
