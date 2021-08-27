@@ -24,8 +24,13 @@ const getSigningKey = async (
     header: JwtHeader,
     callback: SigningKeyCallback
 ) => {
-    const key = await jwksClient.getSigningKey(header.kid);
-    callback(undefined, key.getPublicKey());
+    try {
+        const key = await jwksClient.getSigningKey(header.kid);
+        callback(undefined, key.getPublicKey());
+    } catch (e) {
+        console.error(`Failed to get signing key - ${e}`);
+        callback(e, undefined);
+    }
 };
 
 const validateAccessToken = (accessToken: string, callback: VerifyCallback) => {
