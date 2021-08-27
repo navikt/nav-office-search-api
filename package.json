@@ -12,7 +12,6 @@
     "deploy-dev": "npm run deploy -- deploy.dev.yml"
   },
   "dependencies": {
-    "csv-parser": "^3.0.0",
     "express": "^4.17.1",
     "https-proxy-agent": "^5.0.0",
     "jsonwebtoken": "^8.5.1",

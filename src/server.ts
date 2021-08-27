@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
-import { loadData } from './data.js';
 import { validateAndProcessRequest } from './auth.js';
 
 const app = express();
@@ -43,16 +42,10 @@ app.get('/internal/isAlive', (req, res) => {
 });
 
 app.get('/internal/isReady', (req, res) => {
-    if (isReady) {
-        return res.status(200).send('Ok!');
-    }
-    return res.status(503).send('Not ready');
+    return res.status(200).send('Ok!');
 });
 
 const server = app.listen(appPort, () => {
-    loadData(() => {
-        isReady = true;
-    });
     console.log(`Server starting on port ${appPort}`);
 });
 
