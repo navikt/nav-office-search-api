@@ -74,9 +74,7 @@ export const validateAndProcessRequest = (
     validateAccessToken(accessToken, (error, decodedToken) => {
         if (error) {
             console.log(`Failed to validate an access token - ${error}`);
-            return res
-                .status(401)
-                .json({ message: `Not authorized - ${error}` });
+            return res.status(401).json({ message: `Not authorized` });
         }
 
         if (!!decodedToken) {
