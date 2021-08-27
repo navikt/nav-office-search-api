@@ -8,38 +8,34 @@ const appPort = 3003;
 
 let isReady = false;
 
-const processPostnrRequest = (req: Request, res: Response) => {
-    const { postnr } = req.query;
+app.get('/postnr/:postnr', async (req, res) =>
+    validateAndProcessRequest(req, res, (req: Request, res: Response) => {
+        const { postnr } = req.params;
 
-    if (typeof postnr === 'string') {
-        return responseFromPostnrSearch(res, postnr);
-    }
+        if (postnr) {
+            return responseFromPostnrSearch(res, postnr);
+        }
 
-    return res
-        .status(400)
-        .send("Invalid request - 'postnr' parameter is required");
-};
-
-const processOfficeInfoRequest = (req: Request, res: Response) => {
-    const { ids } = req.query;
-
-    if (typeof ids === 'string') {
-    }
-
-    if (Array.isArray(ids)) {
-    }
-
-    return res
-        .status(400)
-        .send("Invalid request - 'ids' parameter is required");
-};
-
-app.get('/postnr', async (req, res) =>
-    validateAndProcessRequest(req, res, processPostnrRequest)
+        return res
+            .status(400)
+            .send("Invalid request - 'postnr' parameter is required");
+    })
 );
 
 app.get('/officeInfo', async (req, res) =>
-    validateAndProcessRequest(req, res, processOfficeInfoRequest)
+    validateAndProcessRequest(req, res, (req: Request, res: Response) => {
+        const { ids } = req.query;
+
+        if (typeof ids === 'string') {
+        }
+
+        if (Array.isArray(ids)) {
+        }
+
+        return res
+            .status(400)
+            .send("Invalid request - 'ids' parameter is required");
+    })
 );
 
 app.get('/internal/isAlive', (req, res) => {
