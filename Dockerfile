@@ -12,9 +12,6 @@ RUN npm ci
 COPY src /usr/src/app/src/
 COPY tsconfig.json /usr/src/app/
 
-# Copy app data
-COPY data /usr/src/app/data/
-
 # Start app
 EXPOSE 3003
 CMD ["npm", "run", "start-docker"]
