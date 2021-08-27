@@ -6,6 +6,8 @@ import { decodeBase64 } from './utils.js';
 
 const oneHourInMs = 60 * 60 * 1000;
 
+const bearerPrefix = 'Bearer';
+
 // @ts-ignore
 const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY);
 
@@ -43,12 +45,12 @@ const parseAccessToken = (req: Request) => {
 
     if (
         typeof authorization !== 'string' ||
-        !authorization.startsWith('Bearer ')
+        !authorization.startsWith(bearerPrefix)
     ) {
         return null;
     }
 
-    return decodeBase64(authorization.replace('Bearer ', ''));
+    return decodeBase64(authorization.replace(bearerPrefix, '').trim());
 };
 
 export const validateAndProcessRequest = (
