@@ -6,13 +6,18 @@ import jwt, {
 import jwks from 'jwks-rsa';
 import { Request, Response } from 'express';
 import { decodeBase64 } from './utils.js';
+import HttpsProxyAgent from 'https-proxy-agent';
 
 const oneHourInMs = 60 * 60 * 1000;
+
+// @ts-ignore
+const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY as string);
 
 const jwksClient = jwks({
     jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI as string,
     cache: false,
     // cacheMaxAge: oneHourInMs,
+    requestAgent: proxyAgent,
 });
 
 const getSigningKey = async (
