@@ -45,7 +45,7 @@ export const validateAndProcessRequest = (
 ) => {
     const { authorization } = req.headers;
 
-    console.log(req.headers, authorization);
+    console.log(req.headers);
 
     if (typeof authorization !== 'string') {
         return res
@@ -53,7 +53,11 @@ export const validateAndProcessRequest = (
             .json({ message: 'Missing authorization header' });
     }
 
-    const accessToken = decodeBase64(authorization);
+    if (!authorization.startsWith('Bearer')) {
+        return res.status(401).json({ message: 'Wrong authorization scheme' });
+    }
+
+    const accessToken = decodeBase64(authorization.replace('Bearer ', ''));
 
     validateAccessToken(accessToken, (error, decodedToken) => {
         if (error) {
