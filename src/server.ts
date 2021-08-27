@@ -5,8 +5,6 @@ import { validateAndProcessRequest } from './auth.js';
 const app = express();
 const appPort = 3003;
 
-let isReady = false;
-
 app.get('/postnr/:postnr', async (req, res) =>
     validateAndProcessRequest(req, res, (req: Request, res: Response) => {
         const { postnr } = req.params;
