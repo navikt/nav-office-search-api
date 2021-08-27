@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
 import { validateAndProcessRequest } from './auth.js';
 
@@ -6,7 +6,7 @@ const app = express();
 const appPort = 3003;
 
 app.get('/postnr/:postnr', async (req, res) =>
-    validateAndProcessRequest(req, res, (req: Request, res: Response) => {
+    validateAndProcessRequest(req, res, () => {
         const { postnr } = req.params;
 
         if (postnr) {
@@ -20,7 +20,7 @@ app.get('/postnr/:postnr', async (req, res) =>
 );
 
 app.get('/officeInfo', async (req, res) =>
-    validateAndProcessRequest(req, res, (req: Request, res: Response) => {
+    validateAndProcessRequest(req, res, () => {
         const { ids } = req.query;
 
         if (typeof ids === 'string') {

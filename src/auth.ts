@@ -54,7 +54,7 @@ const parseAccessToken = (req: Request) => {
 export const validateAndProcessRequest = (
     req: Request,
     res: Response,
-    processRequestCallback: (req: Request, res: Response) => any
+    processRequestCallback: () => any
 ) => {
     const accessToken = parseAccessToken(req);
 
@@ -71,7 +71,7 @@ export const validateAndProcessRequest = (
         }
 
         if (decodedToken) {
-            return processRequestCallback(req, res);
+            return processRequestCallback();
         }
 
         // The callback from jwt.verify should always include either the first
