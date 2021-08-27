@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
 import { responseFromNameSearch } from './search-name.js';
 import { loadData } from './data.js';
-import { validateAndProcessRequest } from './auth';
+import { validateAndProcessRequest } from './auth.js';
 
 const app = express();
 const appPort = 3003;
