@@ -45,3 +45,6 @@ export const removeDuplicates = <Type>(
               return aIndex === bIndex;
           })
         : [...new Set(array)];
+
+export const decodeBase64 = (b64Str: string) =>
+    Buffer.from(b64Str, 'base64').toString();

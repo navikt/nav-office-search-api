@@ -1,57 +1,73 @@
-import jwt from 'jsonwebtoken';
+import jwt, {
+    JwtHeader,
+    SigningKeyCallback,
+    VerifyCallback,
+} from 'jsonwebtoken';
 import jwks from 'jwks-rsa';
+import { decodeBase64 } from './utils';
+import { Request, Response } from 'express';
 
 const oneHourInMs = 60 * 60 * 1000;
 
 const jwksClient = jwks({
     jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI as string,
-    cacheMaxAge: oneHourInMs,
+    cache: false,
+    // cacheMaxAge: oneHourInMs,
 });
 
-const verifySigningKey = async (kid: string) => {
-    const key = await jwksClient.getSigningKey(kid);
-    return !!key.getPublicKey();
+const getSigningKey = async (
+    header: JwtHeader,
+    callback: SigningKeyCallback
+) => {
+    const key = await jwksClient.getSigningKey(header.kid);
+    callback(undefined, key.getPublicKey());
 };
 
-const decodeBase64 = (str: string) => Buffer.from(str, 'base64').toString();
-
-export const validateAuthorizationHeader = async (
-    authorizationHeader: string
+export const validateAccessToken = (
+    accessToken: string,
+    callback: VerifyCallback
 ) => {
-    const clientSecret = process.env.AZURE_APP_CLIENT_SECRET;
-    if (!clientSecret) {
-        console.error('Client secret was not provided');
-        return false;
-    }
-
-    const accessToken = decodeBase64(authorizationHeader);
-
-    try {
-        const decodedToken = jwt.verify(accessToken, clientSecret, {
+    jwt.verify(
+        accessToken,
+        getSigningKey,
+        {
             algorithms: ['RS256', 'RS384', 'RS512'],
-            audience: process.env.AZURE_APP_CLIENT_ID,
-            complete: true,
-        });
+            audience: process.env.API_CLIENT_ID,
+        },
+        callback
+    );
+};
 
-        if (typeof decodedToken !== 'object') {
-            return false;
-        }
+export const validateAndProcessRequest = (
+    req: Request,
+    res: Response,
+    callback: (req: Request, res: Response) => any
+) => {
+    const { Authorization } = req.headers;
 
-        const kid = decodedToken.header.kid;
+    console.log(req.headers, Authorization);
 
-        if (!kid) {
-            console.error('kid header was not provided');
-            return false;
-        }
-
-        if (!(await verifySigningKey(kid))) {
-            console.error('No matching signing key found');
-            return false;
-        }
-
-        return true;
-    } catch (e) {
-        console.error(`Failed to verify access token - ${e}`);
-        return false;
+    if (typeof Authorization !== 'string') {
+        return res
+            .status(401)
+            .json({ message: 'Missing authorization header' });
     }
+
+    const accessToken = decodeBase64(Authorization);
+
+    validateAccessToken(accessToken, (error, decodedToken) => {
+        if (error) {
+            console.log(`Failed to validate an access token - ${error}`);
+            return res
+                .status(401)
+                .json({ message: `Not authorized - ${error}` });
+        }
+
+        if (!!decodedToken) {
+            return callback(req, res);
+        }
+
+        console.error('Invalid callback response from jwt validator');
+        return res.status(500);
+    });
 };

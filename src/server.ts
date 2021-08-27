@@ -1,30 +1,16 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
 import { responseFromNameSearch } from './search-name.js';
 import { loadData } from './data.js';
-import { validateAuthorizationHeader } from './auth.js';
+import { validateAndProcessRequest } from './auth';
 
 const app = express();
 const appPort = 3003;
 
 let isReady = false;
 
-app.get('/api', async (req, res) => {
-    const { postnr, name, checkAuth } = req.query;
-
-    if (checkAuth) {
-        const { authorization } = req.headers;
-
-        if (!authorization) {
-            return res.status(401).send('Authorization header required');
-        }
-
-        if (!(await validateAuthorizationHeader(authorization))) {
-            return res
-                .status(401)
-                .send('Failed to validate authorization header');
-        }
-    }
+const processRequest = (req: Request, res: Response) => {
+    const { postnr, name } = req.query;
 
     if (typeof postnr === 'string') {
         return responseFromPostnrSearch(res, postnr);
@@ -37,6 +23,16 @@ app.get('/api', async (req, res) => {
     return res
         .status(400)
         .send("Invalid request - 'postnr' or 'name' parameter is required");
+};
+
+app.get('/api', async (req, res) => {
+    const { checkAuth } = req.query;
+
+    if (checkAuth) {
+        validateAndProcessRequest(req, res, processRequest);
+    } else {
+        return processRequest(req, res);
+    }
 });
 
 app.get('/internal/isAlive', (req, res) => {

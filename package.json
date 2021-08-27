@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "module": "es",
-  "main": "dist/app.js",
   "scripts": {
     "build": "rm -fr distSrc && tsc",
     "start": "npm run build && node -r dotenv/config distSrc/server.js",
