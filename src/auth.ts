@@ -45,7 +45,7 @@ const parseAccessToken = (req: Request) => {
         return null;
     }
 
-    decodeBase64(authorization.replace('Bearer ', ''));
+    return decodeBase64(authorization.replace('Bearer ', ''));
 };
 
 export const validateAndProcessRequest = (
