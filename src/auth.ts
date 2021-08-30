@@ -53,10 +53,10 @@ const parseAccessToken = (req: Request) => {
     return decodeBase64(authorization.replace(bearerPrefix, '').trim());
 };
 
-export const validateAndProcessRequest = (
+export const validateAndHandleRequest = (
     req: Request,
     res: Response,
-    processRequestCallback: () => any
+    requestHandler: () => any
 ) => {
     const accessToken = parseAccessToken(req);
 
@@ -73,7 +73,7 @@ export const validateAndProcessRequest = (
         }
 
         if (decodedToken) {
-            return processRequestCallback();
+            return requestHandler();
         }
 
         // The callback from jwt.verify should always include either the first

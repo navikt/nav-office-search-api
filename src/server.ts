@@ -1,6 +1,6 @@
 import express from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
-import { validateAndProcessRequest } from './auth.js';
+import { validateAndHandleRequest } from './auth.js';
 import { responseFromGeoIdSearch } from './search-geoid.js';
 
 const app = express();
@@ -8,7 +8,7 @@ const appPort = 3003;
 
 // Look up office info from norg by one or more geographic ids ("geografisk tilknytning" aka kommunenr/bydelsnr)
 app.get('/geoid', async (req, res) =>
-    validateAndProcessRequest(req, res, () => {
+    validateAndHandleRequest(req, res, () => {
         const { ids } = req.query;
 
         if (ids) {
@@ -23,7 +23,7 @@ app.get('/geoid', async (req, res) =>
 
 // Looks up geo-ids covered by the requested postnr, and returns the office info from these ids
 app.get('/postnr/:postnr', async (req, res) =>
-    validateAndProcessRequest(req, res, () => {
+    validateAndHandleRequest(req, res, () => {
         const { postnr } = req.params;
 
         if (postnr) {
