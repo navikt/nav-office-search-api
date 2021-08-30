@@ -1,1 +1,1 @@
-Fss-app for søk etter NAV-kontor via tpsws og norg2
+Nodejs/Express-app for lookup av NAV-kontor informasjon fra FSS-tjenester (tps/norg2)
