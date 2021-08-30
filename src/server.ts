@@ -1,7 +1,7 @@
 import express from 'express';
 import { responseFromPostnrSearch } from './search-postnr.js';
 import { validateAndProcessRequest } from './auth.js';
-import { responseFromGeoIdLookup } from './search-geoid.js';
+import { responseFromGeoIdSearch } from './search-geoid.js';
 
 const app = express();
 const appPort = 3003;
@@ -12,7 +12,7 @@ app.get('/geoid', async (req, res) =>
         const { ids } = req.query;
 
         if (ids) {
-            return responseFromGeoIdLookup(res, ids);
+            return responseFromGeoIdSearch(res, ids);
         }
 
         return res

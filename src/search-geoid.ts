@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { fetchOfficeInfoAndTransformResult } from './fetch.js';
 
-export const responseFromGeoIdLookup = async (res: Response, ids: any) => {
+export const responseFromGeoIdSearch = async (res: Response, ids: any) => {
     if (typeof ids === 'string') {
         const officeInfo = await fetchOfficeInfoAndTransformResult(ids);
 
