@@ -2,22 +2,18 @@ import { Response } from 'express';
 import { fetchOfficeInfoAndTransformResult } from './fetch.js';
 
 export const responseFromGeoIdSearch = async (res: Response, ids: any) => {
-    if (typeof ids === 'string') {
-        const officeInfo = await fetchOfficeInfoAndTransformResult(ids);
+    try {
+        const parsedIds = JSON.parse(ids);
 
-        if (!officeInfo) {
+        if (!Array.isArray(parsedIds)) {
             return res
-                .status(404)
-                .send('No office found for the requested geo-id');
+                .status(400)
+                .send('Invalid request - "ids" must be a string array');
         }
 
-        return res.status(200).send(officeInfo);
-    }
-
-    if (Array.isArray(ids)) {
         const hits = [];
 
-        for (const id of ids) {
+        for (const id of parsedIds) {
             const officeInfo = await fetchOfficeInfoAndTransformResult(id);
 
             if (officeInfo) {
@@ -32,9 +28,9 @@ export const responseFromGeoIdSearch = async (res: Response, ids: any) => {
         }
 
         return res.status(200).send(hits);
+    } catch (e) {
+        return res
+            .status(500)
+            .send(`An error occured while handling the request: ${e}`);
     }
-
-    return res
-        .status(400)
-        .send('Invalid request - "ids" must be a string or string array');
 };
