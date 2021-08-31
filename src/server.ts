@@ -7,17 +7,17 @@ const app = express();
 const appPort = 3003;
 
 // Look up office info from norg by one or more geographic ids ("geografisk tilknytning" aka kommunenr/bydelsnr)
-app.get('/geoid', async (req, res) =>
+app.get('/geoid/:id', async (req, res) =>
     validateAndHandleRequest(req, res, () => {
-        const { ids } = req.query;
+        const { id } = req.params;
 
-        if (ids) {
-            return responseFromGeoIdSearch(res, ids);
+        if (typeof id !== 'string') {
+            return res
+                .status(400)
+                .send("Invalid request - 'id' parameter is required");
         }
 
-        return res
-            .status(400)
-            .send("Invalid request - 'ids' parameter is required");
+        return responseFromGeoIdSearch(res, id);
     })
 );
 
@@ -26,13 +26,13 @@ app.get('/postnr/:postnr', async (req, res) =>
     validateAndHandleRequest(req, res, () => {
         const { postnr } = req.params;
 
-        if (postnr) {
-            return responseFromPostnrSearch(res, postnr);
+        if (typeof postnr !== 'string') {
+            return res
+                .status(400)
+                .send("Invalid request - 'postnr' parameter is required");
         }
 
-        return res
-            .status(400)
-            .send("Invalid request - 'postnr' parameter is required");
+        return responseFromPostnrSearch(res, postnr);
     })
 );
 
