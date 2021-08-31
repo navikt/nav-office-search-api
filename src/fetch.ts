@@ -113,14 +113,16 @@ export const fetchJson = async (
     }
 };
 
-export const fetchTpsPostnrSok = async (
-    postnr: string
+export const fetchTpsAdresseSok = async (
+    postnr: string,
+    adresse?: string
 ): Promise<TpsPostnrSokResponse | ErrorResponse> => {
     return await fetchJson(
         tpswsAdressesokApi,
         {
             soketype: 'L',
             postnr: postnr,
+            ...(adresse && { adresse }),
         },
         generateTpsHeaders()
     );

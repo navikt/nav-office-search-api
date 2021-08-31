@@ -22,9 +22,9 @@ app.get('/geoid/:id', async (req, res) =>
 );
 
 // Looks up geo-ids covered by the requested postnr, and returns the office info from these ids
-app.get('/postnr/:postnr', async (req, res) =>
+app.get('/postnr/:postnr/:adresse', async (req, res) =>
     validateAndHandleRequest(req, res, () => {
-        const { postnr } = req.params;
+        const { postnr, adresse } = req.params;
 
         if (typeof postnr !== 'string') {
             return res
@@ -32,7 +32,7 @@ app.get('/postnr/:postnr', async (req, res) =>
                 .send("Invalid request - 'postnr' parameter is required");
         }
 
-        return responseFromPostnrSearch(res, postnr);
+        return responseFromPostnrSearch(res, postnr, adresse);
     })
 );
 

@@ -2,7 +2,7 @@ import { Response } from 'express';
 import {
     AdresseDataList,
     fetchOfficeInfoAndTransformResult,
-    fetchTpsPostnrSok,
+    fetchTpsAdresseSok,
 } from './fetch.js';
 import { removeDuplicates } from './utils.js';
 import Cache from 'node-cache';
@@ -13,13 +13,14 @@ const cache = new Cache({
 
 export const responseFromPostnrSearch = async (
     res: Response,
-    postnr: string
+    postnr: string,
+    adresse?: string
 ) => {
     if (cache.has(postnr)) {
         return res.status(200).send(cache.get(postnr));
     }
 
-    const apiRes = await fetchTpsPostnrSok(postnr);
+    const apiRes = await fetchTpsAdresseSok(postnr, adresse);
 
     if (apiRes.error) {
         console.error(apiRes.message);
