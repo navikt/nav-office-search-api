@@ -16,9 +16,9 @@ export const responseFromPostnrSearch = async (
     postnr: string,
     adresse?: string
 ) => {
-    if (cache.has(postnr)) {
-        return res.status(200).send({ hits: cache.get(postnr) });
-    }
+    // if (cache.has(postnr)) {
+    //     return res.status(200).send({ hits: cache.get(postnr) });
+    // }
 
     const apiRes = await fetchTpsAdresseSok(postnr, adresse);
 
