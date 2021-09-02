@@ -127,6 +127,7 @@ export const fetchTpsAdresseSok = async (
         tpswsAdressesokApi,
         {
             soketype: 'L',
+            alltidRetur: true,
             postnr: postnr,
             ...(adresse && { adresse }),
         },
