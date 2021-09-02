@@ -25,7 +25,7 @@ export const responseFromPostnrSearch = async (
 
     if (apiRes.error) {
         console.error(apiRes.message);
-        return res.status(apiRes.statusCode).send(apiRes.message);
+        return res.status(apiRes.statusCode).send(apiRes);
     }
 
     const { adresseDataList } = apiRes;
