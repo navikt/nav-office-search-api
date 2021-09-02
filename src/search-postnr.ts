@@ -3,6 +3,7 @@ import {
     AdresseDataList,
     fetchOfficeInfoAndTransformResult,
     fetchTpsAdresseSok,
+    OfficeInfoHit,
 } from './fetch.js';
 import { removeDuplicates } from './utils.js';
 import Cache from 'node-cache';
@@ -29,7 +30,7 @@ export const responseFromPostnrSearch = async (
 
     const { adresseDataList } = apiRes;
 
-    const hits = [];
+    const hits: OfficeInfoHit[] = [];
 
     if (adresseDataList) {
         const adresseDataListFiltered = removeDuplicates(
@@ -44,7 +45,7 @@ export const responseFromPostnrSearch = async (
             );
 
             if (officeInfo) {
-                hits.push(officeInfo);
+                hits.push({ ...officeInfo, adressenavn: adresse.adressenavn });
             }
         }
 

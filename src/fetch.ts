@@ -1,7 +1,6 @@
 import fetch, { HeadersInit } from 'node-fetch';
 import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
-import { SearchHit } from './utils.js';
 
 const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API;
 const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API;
@@ -9,6 +8,13 @@ const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API;
 const norgCache = new Cache({
     stdTTL: 3600,
 });
+
+export type OfficeInfoHit = {
+    kontorNavn: string;
+    enhetNr: string;
+    status: string;
+    adressenavn?: string;
+};
 
 export type AdresseDataList = {
     kommunenummer: string;
@@ -148,7 +154,7 @@ const fetchNorgNavkontor = async (
 
 export const fetchOfficeInfoAndTransformResult = async (
     geografiskNr: string
-): Promise<SearchHit | null> => {
+): Promise<OfficeInfoHit | null> => {
     const officeInfoRaw = await fetchNorgNavkontor(geografiskNr);
 
     if (officeInfoRaw.error) {
