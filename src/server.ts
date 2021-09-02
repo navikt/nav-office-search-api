@@ -7,9 +7,9 @@ const app = express();
 const appPort = 3003;
 
 // Look up office info from norg by one or more geographic ids ("geografisk tilknytning" aka kommunenr/bydelsnr)
-app.get('/geoid/:id', async (req, res) =>
+app.get('/geoid', async (req, res) =>
     validateAndHandleRequest(req, res, () => {
-        const { id } = req.params;
+        const { id } = req.query;
 
         if (typeof id !== 'string') {
             return res
