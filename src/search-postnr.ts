@@ -1,15 +1,12 @@
 import { Response } from 'express';
-import {
-    AdresseDataList,
-    fetchOfficeInfoAndTransformResult,
-    fetchTpsAdresseSok,
-    OfficeInfoHit,
-} from './fetch.js';
+import { AdresseDataList, fetchTpsAdresseSok } from './fetch.js';
 import { removeDuplicates } from './utils.js';
 import Cache from 'node-cache';
 
+const oneHour = 3600;
+
 const cache = new Cache({
-    stdTTL: 3600,
+    stdTTL: oneHour,
 });
 
 export const responseFromPostnrSearch = async (
@@ -17,9 +14,9 @@ export const responseFromPostnrSearch = async (
     postnr: string,
     adresse?: string
 ) => {
-    // if (cache.has(postnr)) {
-    //     return res.status(200).send({ hits: cache.get(postnr) });
-    // }
+    if (cache.has(postnr)) {
+        return res.status(200).send({ hits: cache.get(postnr) });
+    }
 
     const apiRes = await fetchTpsAdresseSok(postnr, adresse);
 
@@ -30,8 +27,6 @@ export const responseFromPostnrSearch = async (
 
     const { adresseDataList } = apiRes;
 
-    const hits: OfficeInfoHit[] = [];
-
     if (adresseDataList) {
         const adresseDataListFiltered = removeDuplicates(
             adresseDataList,
@@ -39,18 +34,9 @@ export const responseFromPostnrSearch = async (
                 a.geografiskTilknytning === b.geografiskTilknytning
         );
 
-        for (const adresse of adresseDataListFiltered) {
-            const officeInfo = await fetchOfficeInfoAndTransformResult(
-                adresse.geografiskTilknytning
-            );
-
-            if (officeInfo) {
-                hits.push({ ...officeInfo, adressenavn: adresse.adressenavn });
-            }
-        }
-
-        cache.set(postnr, hits);
+        cache.set(postnr, adresseDataListFiltered);
+        return res.status(200).send({ hits: adresseDataListFiltered });
     }
 
-    return res.status(200).send({ hits });
+    return res.status(200).send({ hits: [] });
 };
