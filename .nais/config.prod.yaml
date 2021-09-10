@@ -1,0 +1,47 @@
+---
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  name: nav-office-search-api
+  namespace: {{namespace}}
+  labels:
+    team: personbruker
+spec:
+  image: {{image}}:{{version}}
+  team: personbruker
+  port: 3003
+  liveness:
+    path: /internal/isAlive
+    initialDelay: 10
+  readiness:
+    path: /internal/isReady
+    initialDelay: 10
+  ingresses:
+  {{#each ingresses as |url|}}
+    - {{url}}
+  {{/each}}
+  env:
+  {{#each env}}
+    - name: {{this.name}}
+      value: {{this.value}}
+  {{/each}}
+  webproxy: true
+  azure:
+    application:
+      enabled: true
+      tenant: nav.no
+  accessPolicy:
+    inbound:
+      rules:
+        - application: nav-office-search
+          namespace: personbruker
+          cluster: prod-gcp
+  replicas:
+    min: 2
+    max: 4
+  resources:
+    limits:
+      cpu: '2'
+      memory: 512Mi
+    requests:
+      memory: 512Mi
