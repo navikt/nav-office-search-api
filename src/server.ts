@@ -15,11 +15,11 @@ app.get('/postnr', async (req, res) =>
 );
 
 app.get('/internal/isAlive', (req, res) => {
-    return res.status(200).send('Ok!');
+    return res.status(200).send('I am alive!');
 });
 
 app.get('/internal/isReady', (req, res) => {
-    return res.status(200).send('Ok!');
+    return res.status(200).send('I am ready!');
 });
 
 const server = app.listen(appPort, () => {

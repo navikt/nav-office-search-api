@@ -2,7 +2,6 @@ import jwt, { GetPublicKeyOrSecret, VerifyCallback } from 'jsonwebtoken';
 import jwks from 'jwks-rsa';
 import { Request, Response } from 'express';
 import HttpsProxyAgent from 'https-proxy-agent';
-import { decodeBase64 } from './utils.js';
 
 const bearerPrefix = 'Bearer';
 
@@ -37,6 +36,9 @@ const validateAccessToken = (accessToken: string, callback: VerifyCallback) => {
         callback
     );
 };
+
+const decodeBase64 = (b64Str: string) =>
+    Buffer.from(b64Str, 'base64').toString();
 
 const parseAccessToken = (req: Request) => {
     const { authorization } = req.headers;

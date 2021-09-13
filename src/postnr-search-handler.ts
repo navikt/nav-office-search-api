@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
-import { removeDuplicates } from './utils.js';
 import { ErrorResponse, fetchJson } from './fetch.js';
 
 const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API;
@@ -28,11 +27,6 @@ type TpsAdresseSokResponse = {
     adresseDataList: AdresseDataList[];
 };
 
-const generateTpsHeaders = () => ({
-    'Nav-Consumer-Id': 'nav-office-search-api',
-    'Nav-Call-Id': uuid(),
-});
-
 const fetchTpsAdresseSok = async (
     postnr: string,
     adresse?: string
@@ -49,7 +43,10 @@ const fetchTpsAdresseSok = async (
             postnr: postnr,
             ...(adresse && { adresse }),
         },
-        generateTpsHeaders()
+        {
+            'Nav-Consumer-Id': 'nav-office-search-api',
+            'Nav-Call-Id': uuid(),
+        }
     );
 
     if (response.error) {
@@ -76,19 +73,11 @@ export const postnrSearchHandler = async (req: Request, res: Response) => {
     );
 
     if (response.error) {
-        return res.status(response.statusCode).send(response);
+        console.log(`Fetch error from tps adresse-sok - ${response.message}`);
+        return res
+            .status(response.statusCode)
+            .send({ message: response.message });
     }
 
-    const { adresseDataList } = response;
-
-    if (adresseDataList) {
-        const uniqueHits = removeDuplicates(
-            adresseDataList,
-            (a, b) => a.geografiskTilknytning === b.geografiskTilknytning
-        );
-
-        return res.status(200).send({ hits: uniqueHits });
-    }
-
-    return res.status(200).send({ hits: [] });
+    return res.status(200).send({ hits: response.adresseDataList || [] });
 };
