@@ -1,42 +1,18 @@
 import express from 'express';
 import { validateAndHandleRequest } from './auth.js';
-import { responseFromPostnrSearch } from './search-postnr.js';
-import { responseFromGeoIdSearch } from './search-geoid.js';
+import { postnrSearchHandler } from './postnr-search-handler.js';
+import { geoIdSearchHandler } from './geoid-search-handler.js';
 
 const app = express();
 const appPort = 3003;
 
 app.get('/geoid', async (req, res) =>
-    validateAndHandleRequest(req, res, () => {
-        const { id } = req.query;
-
-        if (typeof id !== 'string') {
-            return res
-                .status(400)
-                .send("Invalid request - 'id' parameter is required");
-        }
-
-        return responseFromGeoIdSearch(res, id);
-    })
+    validateAndHandleRequest(req, res, geoIdSearchHandler)
 );
 
-app.get('/postnr', async (req, res) => {
-    validateAndHandleRequest(req, res, () => {
-        const { postnr, adresse } = req.query;
-
-        if (typeof postnr !== 'string') {
-            return res
-                .status(400)
-                .send("Invalid request - 'postnr' parameter is required");
-        }
-
-        return responseFromPostnrSearch(
-            res,
-            postnr,
-            typeof adresse === 'string' ? adresse : undefined
-        );
-    });
-});
+app.get('/postnr', async (req, res) =>
+    validateAndHandleRequest(req, res, postnrSearchHandler)
+);
 
 app.get('/internal/isAlive', (req, res) => {
     return res.status(200).send('Ok!');

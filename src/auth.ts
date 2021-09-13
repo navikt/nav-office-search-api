@@ -4,8 +4,6 @@ import { Request, Response } from 'express';
 import HttpsProxyAgent from 'https-proxy-agent';
 import { decodeBase64 } from './utils.js';
 
-const oneHourInMs = 60 * 60 * 1000;
-
 const bearerPrefix = 'Bearer';
 
 // @ts-ignore
@@ -14,7 +12,7 @@ const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY);
 const jwksClient = jwks({
     jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI,
     cache: true,
-    cacheMaxAge: oneHourInMs,
+    cacheMaxAge: 3600 * 1000,
     requestAgent: proxyAgent,
 });
 
@@ -56,7 +54,7 @@ const parseAccessToken = (req: Request) => {
 export const validateAndHandleRequest = (
     req: Request,
     res: Response,
-    requestHandler: () => any
+    requestHandler: (req: Request, res: Response) => any
 ) => {
     const accessToken = parseAccessToken(req);
 
@@ -73,7 +71,7 @@ export const validateAndHandleRequest = (
         }
 
         if (decodedToken) {
-            return requestHandler();
+            return requestHandler(req, res);
         }
 
         // The callback from jwt.verify should always include either the first
