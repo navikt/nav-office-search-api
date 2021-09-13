@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { fetchOfficeInfoAndTransformResult } from './fetch.js';
 
+// Look up office info from norg by one or more geographic ids ("geografisk tilknytning" aka kommunenr/bydelsnr)
 export const responseFromGeoIdSearch = async (res: Response, id: string) => {
     const officeInfo = await fetchOfficeInfoAndTransformResult(id);
 

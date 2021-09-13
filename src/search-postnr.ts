@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { AdresseDataList, fetchTpsAdresseSok } from './fetch.js';
+import { fetchTpsAdresseSok } from './fetch.js';
 import { removeDuplicates } from './utils.js';
 import Cache from 'node-cache';
 
@@ -14,28 +14,32 @@ export const responseFromPostnrSearch = async (
     postnr: string,
     adresse?: string
 ) => {
-    if (cache.has(postnr)) {
+    if (!adresse && cache.has(postnr)) {
         return res.status(200).send({ hits: cache.get(postnr) });
     }
 
-    const apiRes = await fetchTpsAdresseSok(postnr, adresse);
+    const adresseSokResponse = await fetchTpsAdresseSok(postnr, adresse);
 
-    if (apiRes.error) {
-        console.error(apiRes.message);
-        return res.status(apiRes.statusCode).send(apiRes);
+    if (adresseSokResponse.error) {
+        console.error(adresseSokResponse.message);
+        return res
+            .status(adresseSokResponse.statusCode)
+            .send(adresseSokResponse);
     }
 
-    const { adresseDataList } = apiRes;
+    const { adresseDataList } = adresseSokResponse;
 
     if (adresseDataList) {
-        const adresseDataListFiltered = removeDuplicates(
+        const uniqueHits = removeDuplicates(
             adresseDataList,
-            (a: AdresseDataList, b: AdresseDataList) =>
-                a.geografiskTilknytning === b.geografiskTilknytning
+            (a, b) => a.geografiskTilknytning === b.geografiskTilknytning
         );
 
-        cache.set(postnr, adresseDataListFiltered);
-        return res.status(200).send({ hits: adresseDataListFiltered });
+        if (!adresse) {
+            cache.set(postnr, uniqueHits);
+        }
+
+        return res.status(200).send({ hits: uniqueHits });
     }
 
     return res.status(200).send({ hits: [] });
