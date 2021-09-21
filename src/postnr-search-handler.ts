@@ -41,6 +41,7 @@ const fetchTpsAdresseSok = async (
             soketype: 'L',
             alltidRetur: true,
             postnr: postnr,
+            husnr: '0001',
             ...(adresse && { adresse }),
         },
         {
