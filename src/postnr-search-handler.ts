@@ -29,7 +29,7 @@ type TpsAdresseSokResponse = {
 
 const fetchTpsAdresseSok = async (
     postnr: string,
-    husnr = '0001',
+    husnr?: string,
     adresse?: string
 ): Promise<TpsAdresseSokResponse | ErrorResponse> => {
     if (!adresse && cache.has(postnr)) {
@@ -42,7 +42,7 @@ const fetchTpsAdresseSok = async (
             soketype: 'L',
             alltidRetur: true,
             postnr,
-            husnr,
+            ...(husnr && { husnr }),
             ...(adresse && { adresse }),
         },
         {
