@@ -85,8 +85,8 @@ export const loadNorgOfficeInfo = async () => {
     geoIdToOfficeInfoMap = newOfficeInfoMap;
 
     console.log(
-        `Finished loading office data! ${
+        `Finished loading office data! Offices for ${
             Object.keys(geoIdToOfficeInfoMap).length
-        } offices loaded.`
+        } geoids loaded.`
     );
 };
