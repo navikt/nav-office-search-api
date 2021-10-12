@@ -1,50 +1,88 @@
 import { Request, Response } from 'express';
-import Cache from 'node-cache';
-import { ErrorResponse, fetchJson } from './fetch.js';
+import { fetchJson } from './fetch.js';
 
-const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API;
+const norgEnhetApi = process.env.NORG_ENHET_API;
+const norgNavkontorerApi = `${process.env.NORG_ENHET_API}/navkontorer`;
 
-const cache = new Cache({
-    stdTTL: 3600 * 24,
-});
-
-type NorgNavkontorResponse = {
-    error: undefined;
-    enhetId: number;
-    navn: string;
-    enhetNr: string;
-    antallRessurser: number;
-    status: string;
-    orgNivaa: string;
-    type: string;
-    organisasjonsnummer: string;
-    underEtableringDato: string;
-    aktiveringsdato: string;
-    underAvviklingDato: string;
-    nedleggelsesdato: string;
-    oppgavebehandler: boolean;
-    versjon: number;
-    sosialeTjenester: string;
-    kanalstrategi: string;
-    orgNrTilKommunaltNavKontor: string;
+type OfficeInfoMap = {
+    [geoId: string]: NorgEnhetTransformed;
 };
 
-const fetchNorgNavkontor = async (
-    geografiskNr: string
-): Promise<NorgNavkontorResponse | ErrorResponse> => {
-    if (cache.has(geografiskNr)) {
-        return cache.get(geografiskNr) as NorgNavkontorResponse;
-    }
+let officeInfoMap: OfficeInfoMap = {};
 
-    const response = await fetchJson(`${norg2NavkontorApi}/${geografiskNr}`);
+type NorgEnhetRaw = {
+    aktiveringsdato: string;
+    antallRessurser: number;
+    enhetId: number;
+    enhetNr: string;
+    kanalstrategi: string;
+    navn: string;
+    nedleggelsesdato: string;
+    oppgavebehandler: boolean;
+    orgNivaa: string;
+    orgNrTilKommunaltNavKontor: string;
+    organisasjonsnummer: string;
+    sosialeTjenester: string;
+    status: string;
+    type: string;
+    underAvviklingDato: string;
+    underEtableringDato: string;
+    versjon: number;
+};
+
+type NorgEnhetTransformed = Pick<NorgEnhetRaw, 'enhetNr' | 'navn'>;
+
+type NorgEnhetResponse = NorgEnhetRaw[] & { error: undefined };
+
+type NorgNavkontorerResponse = {
+    navKontorId: number;
+    geografiskOmraade: string;
+    enhetId: number;
+    alternativEnhetId: number;
+}[] & { error: undefined };
+
+const transformNorgEnhet = (norgEnhet: NorgEnhetRaw): NorgEnhetTransformed => ({
+    enhetNr: norgEnhet.enhetNr,
+    navn: norgEnhet.navn,
+});
+
+export const loadNorgOfficeData = async () => {
+    console.log('Loading office data from norg...');
+
+    const response = await fetchJson<NorgEnhetResponse>(norgEnhetApi, {
+        enhetStatusListe: 'AKTIV',
+    });
 
     if (response.error) {
-        console.error(`Fetch error from norg: ${response.message}`);
-    } else {
-        cache.set(geografiskNr, response);
+        console.error(`Fetch error from norg enhet: ${response.message}`);
+        return response;
     }
 
-    return response;
+    const lokalEnheter = response.filter((item) => item.type === 'LOKAL');
+
+    const newOfficeInfoMap: OfficeInfoMap = {};
+
+    for (const enhet of lokalEnheter) {
+        const kontorerResponse = await fetchJson<NorgNavkontorerResponse>(
+            `${norgNavkontorerApi}/${enhet.enhetNr}`
+        );
+
+        if (!kontorerResponse.error) {
+            const enhetTransformed = transformNorgEnhet(enhet);
+
+            kontorerResponse.forEach((item) => {
+                newOfficeInfoMap[item.geografiskOmraade] = enhetTransformed;
+            });
+        } else {
+            console.error(
+                `Fetch error from norg navkontorer: ${kontorerResponse.message}`
+            );
+        }
+    }
+
+    officeInfoMap = newOfficeInfoMap;
+
+    console.log('Finished loading office data!');
 };
 
 // Look up office info from norg by one or more geographic ids ("geografisk tilknytning" aka kommunenr/bydelsnr)
@@ -57,11 +95,11 @@ export const geoIdSearchHandler = async (req: Request, res: Response) => {
             .send("Invalid request - 'id' parameter is required");
     }
 
-    const officeInfo = await fetchNorgNavkontor(id);
+    const officeInfo = officeInfoMap[id];
 
-    if (officeInfo.error) {
-        return res.status(officeInfo.statusCode).send({
-            message: `No office info returned for ${id} - error: ${officeInfo.message}`,
+    if (!officeInfo) {
+        return res.status(404).send({
+            message: `No office info found for geoid ${id}`,
         });
     }
 

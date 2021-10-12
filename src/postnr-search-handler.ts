@@ -36,7 +36,7 @@ const fetchTpsAdresseSok = async (
         return cache.get(postnr) as TpsAdresseSokResponse;
     }
 
-    const response = await fetchJson(
+    const response = await fetchJson<TpsAdresseSokResponse>(
         tpswsAdressesokApi,
         {
             soketype: 'L',

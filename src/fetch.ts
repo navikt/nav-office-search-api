@@ -27,11 +27,11 @@ export const objectToQueryString = (params: object) =>
         ''
     );
 
-export const fetchJson = async (
+export const fetchJson = async <T>(
     apiUrl: string,
     params?: object,
     headers?: HeadersInit
-) => {
+): Promise<ErrorResponse | T> => {
     const url = `${apiUrl}${params ? objectToQueryString(params) : ''}`;
 
     try {
