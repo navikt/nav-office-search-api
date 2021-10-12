@@ -42,8 +42,8 @@ jobs:
             - https://nav-office-search-api.intern.nav.no
             - https://nav-office-search-api.prod-fss-pub.nais.io
           env:
-            - name: NORG_NAVKONTOR_API
-              value: https://app.adeo.no/norg2/api/v1/enhet/navkontor
+            - name: NORG_ENHET_API
+              value: https://app.adeo.no/norg2/api/v1/enhet
             - name: TPS_ADRESSESOK_API
               value: https://app.adeo.no/tpsws-aura/api/v1/adressesoek
             - name: NODE_EXTRA_CA_CERTS
