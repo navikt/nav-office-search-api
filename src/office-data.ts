@@ -51,16 +51,16 @@ export const getOfficeData = (geoId: string) => geoIdToOfficeInfoMap[geoId];
 export const loadNorgOfficeInfo = async () => {
     console.log('Loading office data from norg...');
 
-    const enhetRespnse = await fetchJson<NorgEnhetResponse>(norgEnhetApi, {
+    const enhetResponse = await fetchJson<NorgEnhetResponse>(norgEnhetApi, {
         enhetStatusListe: 'AKTIV',
     });
 
-    if (enhetRespnse.error) {
-        console.error(`Fetch error from norg enhet: ${enhetRespnse.message}`);
-        return enhetRespnse;
+    if (enhetResponse.error) {
+        console.error(`Fetch error from norg enhet: ${enhetResponse.message}`);
+        return enhetResponse;
     }
 
-    const lokalEnheter = enhetRespnse.filter((item) => item.type === 'LOKAL');
+    const lokalEnheter = enhetResponse.filter((item) => item.type === 'LOKAL');
 
     const newOfficeInfoMap: OfficeInfoMap = {};
 
