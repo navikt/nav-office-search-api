@@ -36,6 +36,7 @@ const server = app.listen(appPort, () => {
             { hour: 5, minute: 0, second: 0 },
             loadNorgOfficeInfo
         );
+        isReady = true;
     });
 
     console.log(`Server starting on port ${appPort}`);
