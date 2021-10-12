@@ -5,7 +5,7 @@ import { ErrorResponse, fetchJson } from './fetch.js';
 const norg2NavkontorApi = process.env.NORG_NAVKONTOR_API;
 
 const cache = new Cache({
-    stdTTL: 3600,
+    stdTTL: 3600 * 24,
 });
 
 type NorgNavkontorResponse = {
