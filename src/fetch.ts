@@ -6,6 +6,8 @@ export type ErrorResponse = {
     message: string;
 };
 
+export type OkResponse = { error: undefined };
+
 export const errorResponse = (
     code: number,
     message: string,

@@ -1,9 +1,9 @@
-import { fetchJson } from './fetch.js';
+import { fetchJson, OkResponse } from './fetch.js';
 
 const norgEnhetApi = process.env.NORG_ENHET_API;
 const norgNavkontorerApi = `${process.env.NORG_ENHET_API}/navkontorer`;
 
-type OfficeInfoMap = {
+type GeoIdToEnhetMap = {
     [geoId: string]: NorgEnhetTransformed;
 };
 
@@ -29,23 +29,24 @@ type NorgEnhetRaw = {
 
 type NorgEnhetTransformed = Pick<NorgEnhetRaw, 'enhetNr' | 'navn'>;
 
-type NorgEnhetResponse = NorgEnhetRaw[] & { error: undefined };
+type NorgEnhetResponse = NorgEnhetRaw[] & OkResponse;
 
 type NorgNavkontorerResponse = {
     navKontorId: number;
     geografiskOmraade: string;
     enhetId: number;
     alternativEnhetId: number;
-}[] & { error: undefined };
+}[] &
+    OkResponse;
 
 const transformNorgEnhet = (norgEnhet: NorgEnhetRaw): NorgEnhetTransformed => ({
     enhetNr: norgEnhet.enhetNr,
     navn: norgEnhet.navn,
 });
 
-let geoIdToOfficeInfoMap: OfficeInfoMap = {};
+let geoIdToEnhetMap: GeoIdToEnhetMap = {};
 
-export const getOfficeData = (geoId: string) => geoIdToOfficeInfoMap[geoId];
+export const getOfficeData = (geoId: string) => geoIdToEnhetMap[geoId];
 
 // Load office info from norg and refresh the office info map
 export const loadNorgOfficeInfo = async () => {
@@ -57,36 +58,43 @@ export const loadNorgOfficeInfo = async () => {
 
     if (enhetResponse.error) {
         console.error(`Fetch error from norg enhet: ${enhetResponse.message}`);
-        return enhetResponse;
+        return;
     }
 
-    const lokalEnheter = enhetResponse.filter((item) => item.type === 'LOKAL');
+    const newEnhetMap: GeoIdToEnhetMap = {};
 
-    const newOfficeInfoMap: OfficeInfoMap = {};
+    const lokalEnheter = enhetResponse.filter((item) => item.type === 'LOKAL');
 
     for (const enhet of lokalEnheter) {
         const kontorerResponse = await fetchJson<NorgNavkontorerResponse>(
             `${norgNavkontorerApi}/${enhet.enhetNr}`
         );
 
-        if (!kontorerResponse.error) {
-            const enhetTransformed = transformNorgEnhet(enhet);
-
-            kontorerResponse.forEach((item) => {
-                newOfficeInfoMap[item.geografiskOmraade] = enhetTransformed;
+        if (kontorerResponse.error) {
+            // Reuse the previous data if fetching new data failed
+            Object.entries(geoIdToEnhetMap).forEach(([geoId, prevEnhet]) => {
+                if (prevEnhet.enhetNr === enhet.enhetNr) {
+                    newEnhetMap[geoId] = prevEnhet;
+                }
             });
-        } else {
+
             console.error(
                 `Fetch error from norg navkontorer: ${kontorerResponse.message}`
             );
+        } else {
+            const enhetTransformed = transformNorgEnhet(enhet);
+
+            kontorerResponse.forEach((item) => {
+                newEnhetMap[item.geografiskOmraade] = enhetTransformed;
+            });
         }
     }
 
-    geoIdToOfficeInfoMap = newOfficeInfoMap;
+    geoIdToEnhetMap = newEnhetMap;
 
     console.log(
         `Finished loading office data! Offices for ${
-            Object.keys(geoIdToOfficeInfoMap).length
+            Object.keys(geoIdToEnhetMap).length
         } geoids loaded.`
     );
 };

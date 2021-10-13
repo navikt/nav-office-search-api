@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import Cache from 'node-cache';
 import { v4 as uuid } from 'uuid';
-import { ErrorResponse, fetchJson } from './fetch.js';
+import { ErrorResponse, fetchJson, OkResponse } from './fetch.js';
 
 const tpswsAdressesokApi = process.env.TPS_ADRESSESOK_API;
 
@@ -23,9 +23,8 @@ type AdresseDataList = {
 };
 
 type TpsAdresseSokResponse = {
-    error: undefined;
     adresseDataList: AdresseDataList[];
-};
+} & OkResponse;
 
 const fetchTpsAdresseSok = async (
     postnr: string,
