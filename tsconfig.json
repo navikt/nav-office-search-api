@@ -6,13 +6,14 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "lib": [
-      "esnext"
+      "esnext",
+      "dom",
     ],
     "moduleResolution": "node",
     "module": "esnext",
     "outDir": "./distSrc",
     "strict": true,
-    "target": "es2017",
+    "target": "es2017"
   },
   "include": [
     "**/*.js",

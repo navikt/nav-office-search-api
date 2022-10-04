@@ -1,5 +1,3 @@
-import fetch, { HeadersInit } from 'node-fetch';
-
 export type ErrorResponse = {
     error: true;
     statusCode: number;
