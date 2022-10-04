@@ -18,10 +18,10 @@ const jwksClient = jwks({
 const getSigningKey: GetPublicKeyOrSecret = async (header, callback) => {
     try {
         const key = await jwksClient.getSigningKey(header.kid);
-        callback(undefined, key.getPublicKey());
+        callback(null, key.getPublicKey());
     } catch (e) {
         console.error(`Failed to get signing key - ${e}`);
-        callback(e, undefined);
+        callback(e as Error, undefined);
     }
 };
 
