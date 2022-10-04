@@ -23,8 +23,8 @@ export const objectToQueryString = (params: object) =>
         (acc, [k, v], i) =>
             v !== undefined
                 ? `${acc}${i ? '&' : '?'}${k}=${encodeURIComponent(
-                      typeof v === 'object' ? JSON.stringify(v) : v
-                  )}`
+                    typeof v === 'object' ? JSON.stringify(v) : v
+                )}`
                 : acc,
         ''
     );
@@ -57,6 +57,6 @@ export const fetchJson = async <T>(
 
         return errorResponse(res.status, errorMsg, url);
     } catch (e) {
-        return errorResponse(500, e.toString(), url);
+        return errorResponse(500, (e as Error).toString(), url);
     }
 };
