@@ -23,6 +23,8 @@ spec:
     - {{url}}
   {{/each}}
   env:
+    - name: NPM_CONFIG_CACHE
+      value: /tmp/npm-cache
   {{#each env}}
     - name: {{this.name}}
       value: {{this.value}}
