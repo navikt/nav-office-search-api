@@ -12,10 +12,10 @@ spec:
   port: 3003
   liveness:
     path: /internal/isAlive
-    initialDelay: 10
+    initialDelay: 5
   readiness:
     path: /internal/isReady
-    initialDelay: 10
+    initialDelay: 5
   ingresses:
     - https://nav-office-search-api.dev.intern.nav.no
     - https://nav-office-search-api.dev-fss-pub.nais.io
@@ -28,7 +28,6 @@ spec:
       value: https://app-q0.adeo.no/norg2/api/v1/enhet
     - name: TPS_ADRESSESOK_API
       value: https://app-q0.adeo.no/tpsws-aura/api/v1/adressesoek
-  {{/each}}
   webproxy: true
   azure:
     application:
