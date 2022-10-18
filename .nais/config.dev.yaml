@@ -3,13 +3,11 @@ apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
   name: nav-office-search-api
-  namespace: {{namespace}}
+  namespace: personbruker
   labels:
     team: personbruker
-  annotations:
-    nais.io/read-only-file-system: "false"
 spec:
-  image: {{image}}:{{version}}
+  image: {{image}}
   team: personbruker
   port: 3003
   liveness:
@@ -19,15 +17,17 @@ spec:
     path: /internal/isReady
     initialDelay: 10
   ingresses:
-  {{#each ingresses as |url|}}
-    - {{url}}
-  {{/each}}
+    - https://nav-office-search-api.dev.intern.nav.no
+    - https://nav-office-search-api.dev-fss-pub.nais.io
   env:
     - name: NPM_CONFIG_CACHE
       value: /tmp/npm-cache
-  {{#each env}}
-    - name: {{this.name}}
-      value: {{this.value}}
+    - name: NODE_EXTRA_CA_CERTS
+      value: "/etc/ssl/ca-bundle.pem"
+    - name: NORG_ENHET_API
+      value: https://app-q0.adeo.no/norg2/api/v1/enhet
+    - name: TPS_ADRESSESOK_API
+      value: https://app-q0.adeo.no/tpsws-aura/api/v1/adressesoek
   {{/each}}
   webproxy: true
   azure:
@@ -40,11 +40,8 @@ spec:
           namespace: personbruker
           cluster: dev-gcp
   replicas:
-    min: 2
-    max: 2
+    min: 1
+    max: 1
   resources:
-    limits:
-      cpu: '2'
-      memory: 1024Mi
     requests:
-      memory: 512Mi
+      memory: 256Mi
