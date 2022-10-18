@@ -8,13 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     environment: prod-fss:personbruker
     env:
-      image: ghcr.io/${{ github.repository }}:dev-${{ github.sha }}
+      image: ghcr.io/${{ github.repository }}:release-${{ github.ref_name }}
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
       - name: Abort if branch is not master
         if: github.event.release.target_commitish != 'master'
         run: echo "Release is not on master, aborting"; exit 1;
+      - name: Checkout repo
+        uses: actions/checkout@v2
       - name: Setup node.js
         uses: actions/setup-node@v2
         with:
