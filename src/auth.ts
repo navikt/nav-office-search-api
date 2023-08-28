@@ -1,11 +1,10 @@
 import jwt, { GetPublicKeyOrSecret, VerifyCallback } from 'jsonwebtoken';
 import jwks from 'jwks-rsa';
 import { Request, Response } from 'express';
-import HttpsProxyAgent from 'https-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const bearerPrefix = 'Bearer';
 
-// @ts-ignore
 const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY);
 
 const jwksClient = jwks({
