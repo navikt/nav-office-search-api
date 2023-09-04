@@ -7,8 +7,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: prod-fss:personbruker
-    env:
-      image: ghcr.io/${{ github.repository }}:release-${{ github.ref_name }}
+    permissions:
+      contents: "read"
+      id-token: "write"
     steps:
       - name: Abort if branch is not master
         if: github.event.release.target_commitish != 'master'
@@ -24,20 +25,18 @@ jobs:
         run: npm ci
       - name: Build application
         run: npm run build
-      - name: Login to Docker registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push docker image
-        run: |
-          docker build -t ${{ env.image }} .
-          docker push ${{ env.image }}
+        uses: nais/docker-build-push@v0
+        id: docker-push
+        with:
+          team: personbruker
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          image_suffix: 'prod'
       - name: Deploy to nais
         uses: nais/deploy/actions/deploy@v1
         env:
           CLUSTER: prod-fss
           APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          VAR: image=${{ env.image }}
+          VAR: image=${{ steps.docker-push.outputs.image }}
           RESOURCE: .nais/config.prod.yaml
