@@ -4,35 +4,12 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    environment: dev-fss:personbruker
     permissions:
       contents: "read"
       id-token: "write"
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-      - name: Setup node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Build application
-        run: npm run build
-      - name: Build and push docker image
-        uses: nais/docker-build-push@v0
-        id: docker-push
-        with:
-          team: personbruker
-          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
-          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
-          image_suffix: 'dev'
-      - name: Deploy to nais
-        uses: nais/deploy/actions/deploy@v1
-        env:
-          CLUSTER: dev-fss
-          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
-          VAR: image=${{ steps.docker-push.outputs.image }}
-          RESOURCE: .nais/config.dev.yaml
+    uses: ./.github/workflows/build-and-deploy.yml
+    with:
+      environment: dev
+    secrets:
+      NAIS_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+      NAIS_DEPLOY_APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}

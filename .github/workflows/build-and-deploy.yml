@@ -1,0 +1,48 @@
+name: Build and deploy
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      NAIS_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      NAIS_DEPLOY_APIKEY:
+        required: true
+
+jobs:
+  deploy:
+    name: Build image and deploy to nais
+    runs-on: ubuntu-latest
+    permissions:
+      contents: "read"
+      id-token: "write"
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Setup node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build application
+        run: npm run build
+      - name: Build and push docker image
+        uses: nais/docker-build-push@v0
+        id: docker-push
+        with:
+          team: personbruker
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          image_suffix: ${{ inputs.environment }}
+      - name: Deploy to nais
+        uses: nais/deploy/actions/deploy@v1
+        env:
+          CLUSTER: ${{ inputs.environment }}-fss
+          APIKEY: ${{ secrets.NAIS_DEPLOY_APIKEY }}
+          VAR: image=${{ steps.docker-push.outputs.image }}
+          RESOURCE: .nais/config.${{ inputs.environment }}.yaml
