@@ -27,7 +27,7 @@ spec:
     - name: NORG_ENHET_API
       value: https://app-q0.adeo.no/norg2/api/v1/enhet
     - name: TPS_ADRESSESOK_API
-      value: https://app-q0.adeo.no/tpsws-aura/api/v1/adressesoek
+      value: https://tpsws.intern.dev.nav.no/api/v1/adressesoek
   webproxy: true
   azure:
     application:
