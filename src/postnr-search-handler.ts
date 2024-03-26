@@ -28,6 +28,7 @@ type TpsAdresseSokResponse = {
 
 const fetchTpsAdresseSok = async (
     postnr: string,
+    kommunenr?: string,
     husnr?: string,
     adresse?: string
 ): Promise<TpsAdresseSokResponse | ErrorResponse> => {
@@ -41,6 +42,7 @@ const fetchTpsAdresseSok = async (
             soketype: 'L',
             alltidRetur: true,
             postnr,
+            ...(kommunenr && { kommunenr }),
             ...(husnr && { husnr }),
             ...(adresse && { adresse }),
         },
@@ -60,7 +62,7 @@ const fetchTpsAdresseSok = async (
 };
 
 export const postnrSearchHandler = async (req: Request, res: Response) => {
-    const { postnr, adresse, husnr } = req.query;
+    const { postnr, kommunenr, adresse, husnr } = req.query;
 
     if (typeof postnr !== 'string') {
         return res
@@ -70,6 +72,7 @@ export const postnrSearchHandler = async (req: Request, res: Response) => {
 
     const response = await fetchTpsAdresseSok(
         postnr,
+        typeof kommunenr === 'string' ? kommunenr : undefined,
         typeof husnr === 'string' ? husnr : undefined,
         typeof adresse === 'string' ? adresse : undefined
     );
