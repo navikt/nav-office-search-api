@@ -57,7 +57,7 @@ export const loadNorgOfficeInfo = async () => {
     });
 
     if (enhetResponse.error) {
-        console.error(`Fetch error from norg enhet: ${enhetResponse.message}`);
+        console.error(`Fetch error from norg enhet: ${enhetResponse.message} - url: ${norgEnhetApi}`, enhetResponse);
         return;
     }
 
