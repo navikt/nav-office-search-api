@@ -37,6 +37,7 @@ spec:
       external:
         - host: norg2.intern.dev.nav.no
         - host: tpsws.intern.dev.nav.no
+        - host: www.nav.no
   replicas:
     min: 1
     max: 1
