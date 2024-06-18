@@ -17,14 +17,13 @@ spec:
     initialDelay: 5
   ingresses:
     - https://nav-office-search-api.intern.nav.no
-    - https://nav-office-search-api.prod-fss-pub.nais.io
   env:
     - name: NPM_CONFIG_CACHE
       value: /tmp/npm-cache
     - name: NODE_EXTRA_CA_CERTS
       value: "/etc/ssl/ca-bundle.pem"
     - name: NORG_ENHET_API
-      value: https://app.adeo.no/norg2/api/v1/enhet
+      value: https://norg2.intern.nav.no/norg2/api/v1/enhet
     - name: TPS_ADRESSESOK_API
       value: https://tpsws.intern.nav.no/api/v1/adressesoek
   webproxy: true
@@ -37,6 +36,10 @@ spec:
         - application: nav-office-search
           namespace: personbruker
           cluster: prod-gcp
+    outbound:
+      external:
+        - host: norg2.intern.nav.no
+        - host: tpsws.intern.nav.no
   replicas:
     min: 2
     max: 2
