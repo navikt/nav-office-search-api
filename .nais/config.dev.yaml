@@ -23,7 +23,7 @@ spec:
     - name: NORG_ENHET_API
       value: https://norg2.dev-fss-pub.nais.io/norg2/api/v1/enhet
     - name: TPS_ADRESSESOK_API
-      value: https://tpsws.intern.dev.nav.no/api/v1/adressesoek
+      value: https://tpsws.dev.adeo.no/api/v1/adressesoek
   azure:
     application:
       enabled: true
@@ -35,10 +35,8 @@ spec:
           cluster: dev-gcp
     outbound:
       external:
-        - host: norg2.intern.dev.nav.no
         - host: norg2.dev-fss-pub.nais.io
-        - host: tpsws.intern.dev.nav.no
-        - host: www.nav.no
+        - host: tpsws.dev.adeo.no
   replicas:
     min: 1
     max: 1
