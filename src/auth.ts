@@ -1,17 +1,13 @@
 import jwt, { GetPublicKeyOrSecret, VerifyCallback } from 'jsonwebtoken';
 import jwks from 'jwks-rsa';
 import { Request, Response } from 'express';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const bearerPrefix = 'Bearer';
-
-const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY);
 
 const jwksClient = jwks({
     jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI,
     cache: true,
     cacheMaxAge: 3600 * 1000,
-    requestAgent: proxyAgent,
 });
 
 const getSigningKey: GetPublicKeyOrSecret = async (header, callback) => {
@@ -32,7 +28,7 @@ const validateAccessToken = (accessToken: string, callback: VerifyCallback) => {
             algorithms: ['RS256', 'RS384', 'RS512'],
             audience: process.env.AZURE_APP_CLIENT_ID,
         },
-        callback
+        callback,
     );
 };
 
@@ -55,7 +51,7 @@ const parseAccessToken = (req: Request) => {
 export const validateAndHandleRequest = (
     req: Request,
     res: Response,
-    requestHandler: (req: Request, res: Response) => any
+    requestHandler: (req: Request, res: Response) => any,
 ) => {
     const accessToken = parseAccessToken(req);
 

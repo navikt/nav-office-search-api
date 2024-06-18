@@ -40,6 +40,6 @@ jobs:
       - name: Deploy to nais
         uses: nais/deploy/actions/deploy@v2
         env:
-          CLUSTER: ${{ inputs.environment }}-fss
+          CLUSTER: ${{ inputs.environment }}-gcp
           VAR: image=${{ steps.docker-push.outputs.image }}
           RESOURCE: .nais/config.${{ inputs.environment }}.yaml
