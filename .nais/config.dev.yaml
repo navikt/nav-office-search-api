@@ -21,7 +21,7 @@ spec:
     - name: NPM_CONFIG_CACHE
       value: /tmp/npm-cache
     - name: NORG_ENHET_API
-      value: https://norg2.intern.dev.nav.no/norg2/api/v1/enhet
+      value: https://norg2.dev-fss-pub.nais.io/norg2/api/v1/enhet
     - name: TPS_ADRESSESOK_API
       value: https://tpsws.intern.dev.nav.no/api/v1/adressesoek
   azure:
@@ -36,6 +36,7 @@ spec:
     outbound:
       external:
         - host: norg2.intern.dev.nav.no
+        - host: norg2.dev-fss-pub.nais.io
         - host: tpsws.intern.dev.nav.no
         - host: www.nav.no
   replicas:
