@@ -10,7 +10,7 @@
     "start": "node distSrc/server.js"
   },
   "dependencies": {
-    "express": "4.21.1",
+    "express": "4.21.2",
     "https-proxy-agent": "7.0.5",
     "jsonwebtoken": "9.0.2",
     "jwks-rsa": "3.1.0",
