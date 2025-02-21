@@ -8,9 +8,6 @@ on:
         secrets:
             NAIS_WORKLOAD_IDENTITY_PROVIDER:
                 required: true
-        push:
-            branches:
-                - main
 
 jobs:
     deploy:
