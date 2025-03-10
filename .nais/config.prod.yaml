@@ -15,6 +15,10 @@ spec:
   readiness:
     path: /internal/isReady
     initialDelay: 5
+  observability:
+    autoInstrumentation:
+      enabled: true
+      runtime: nodejs
   ingresses:
     - https://nav-office-search-api.intern.nav.no
     - https://nav-office-search-api.prod-fss-pub.nais.io
