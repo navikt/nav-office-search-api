@@ -30,7 +30,7 @@ jobs:
             - name: Build application
               run: npm run build
             - name: Prune dependencies
-              run: npm prune --omit=de
+              run: npm prune --omit=dev
             - name: Build and push docker image
               uses: nais/docker-build-push@v0
               id: docker-push
