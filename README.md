@@ -2,4 +2,4 @@ Nodejs/Express-app for lookup av NAV-kontor informasjon fra FSS-tjenester (tps/n
 
 ## Prodsetting
 
-Lag en PR til main, og merge inn etter godkjenning (En automatisk release vil oppstå ved deploy til main)
+Lag en PR til main, og merge inn etter godkjenning (En automatisk release vil oppstå ved deploy til main).
