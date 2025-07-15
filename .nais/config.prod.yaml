@@ -3,9 +3,9 @@ apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
   name: nav-office-search-api
-  namespace: personbruker
+  namespace: navno
   labels:
-    team: personbruker
+    team: navno
 spec:
   image: {{image}}
   port: 3003
@@ -39,7 +39,7 @@ spec:
     inbound:
       rules:
         - application: nav-office-search
-          namespace: personbruker
+          namespace: navno
           cluster: prod-gcp
   replicas:
     min: 2
