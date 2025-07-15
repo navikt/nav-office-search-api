@@ -39,7 +39,7 @@ spec:
     inbound:
       rules:
         - application: nav-office-search
-          namespace: navno
+          namespace: personbruker
           cluster: prod-gcp
   replicas:
     min: 2
