@@ -3,9 +3,9 @@ apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
   name: nav-office-search-api
-  namespace: navno
+  namespace: personbruker
   labels:
-    team: navno
+    team: personbruker
 spec:
   image: {{image}}
   port: 3003
