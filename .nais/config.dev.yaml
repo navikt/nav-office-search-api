@@ -2,47 +2,47 @@
 apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
-  name: nav-office-search-api
-  namespace: personbruker
-  labels:
-    team: personbruker
+    name: nav-office-search-api
+    namespace: navno
+    labels:
+        team: navno
 spec:
-  image: {{image}}
-  port: 3003
-  liveness:
-    path: /internal/isAlive
-    initialDelay: 5
-  readiness:
-    path: /internal/isReady
-    initialDelay: 5
-  ingresses:
-    - https://nav-office-search-api.intern.dev.nav.no
-    - https://nav-office-search-api.dev-fss-pub.nais.io
-  env:
-    - name: NPM_CONFIG_CACHE
-      value: /tmp/npm-cache
-    - name: NODE_EXTRA_CA_CERTS
-      value: "/etc/ssl/ca-bundle.pem"
-    - name: NORG_ENHET_API
-      value: https://app-q2.adeo.no/norg2/api/v1/enhet
-    - name: TPS_ADRESSESOK_API
-      value: https://tpsws.intern.dev.nav.no/api/v1/adressesoek
-  webproxy: true
-  azure:
-    application:
-      enabled: true
-  accessPolicy:
-    inbound:
-      rules:
-        - application: nav-office-search
-          namespace: personbruker
-          cluster: dev-gcp
-  replicas:
-    min: 1
-    max: 1
-  resources:
-    limits:
-      memory: 512Mi
-    requests:
-      cpu: 50m
-      memory: 128Mi
+    image: { { image } }
+    port: 3003
+    liveness:
+        path: /internal/isAlive
+        initialDelay: 5
+    readiness:
+        path: /internal/isReady
+        initialDelay: 5
+    ingresses:
+        - https://nav-office-search-api.intern.dev.nav.no
+        - https://nav-office-search-api.dev-fss-pub.nais.io
+    env:
+        - name: NPM_CONFIG_CACHE
+          value: /tmp/npm-cache
+        - name: NODE_EXTRA_CA_CERTS
+          value: '/etc/ssl/ca-bundle.pem'
+        - name: NORG_ENHET_API
+          value: https://app-q2.adeo.no/norg2/api/v1/enhet
+        - name: TPS_ADRESSESOK_API
+          value: https://tpsws.intern.dev.nav.no/api/v1/adressesoek
+    webproxy: true
+    azure:
+        application:
+            enabled: true
+    accessPolicy:
+        inbound:
+            rules:
+                - application: nav-office-search
+                  namespace: navno
+                  cluster: dev-gcp
+    replicas:
+        min: 1
+        max: 1
+    resources:
+        limits:
+            memory: 512Mi
+        requests:
+            cpu: 50m
+            memory: 128Mi
