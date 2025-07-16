@@ -50,51 +50,61 @@ export const getOfficeData = (geoId: string) => geoIdToEnhetMap[geoId];
 
 // Load office info from norg and refresh the office info map
 export const loadNorgOfficeInfo = async () => {
-    console.log('Loading office data from norg...');
+    try {
+        console.log('Loading office data from norg...');
 
-    const enhetResponse = await fetchJson<NorgEnhetResponse>(norgEnhetApi, {
-        enhetStatusListe: 'AKTIV',
-    });
+        const enhetResponse = await fetchJson<NorgEnhetResponse>(norgEnhetApi, {
+            enhetStatusListe: 'AKTIV',
+        });
 
-    if (enhetResponse.error) {
-        console.error(`Fetch error from norg enhet: ${enhetResponse.message}`);
-        return;
-    }
+        if (enhetResponse.error) {
+            console.error(
+                `Fetch error from norg enhet: ${enhetResponse.message}`
+            );
+            return;
+        }
 
-    const newEnhetMap: GeoIdToEnhetMap = {};
+        const newEnhetMap: GeoIdToEnhetMap = {};
 
-    const lokalEnheter = enhetResponse.filter((item) => item.type === 'LOKAL');
-
-    for (const enhet of lokalEnheter) {
-        const kontorerResponse = await fetchJson<NorgNavkontorerResponse>(
-            `${norgNavkontorerApi}/${enhet.enhetNr}`
+        const lokalEnheter = enhetResponse.filter(
+            (item) => item.type === 'LOKAL'
         );
 
-        if (kontorerResponse.error) {
-            // Reuse the previous data if fetching new data failed
-            Object.entries(geoIdToEnhetMap).forEach(([geoId, prevEnhet]) => {
-                if (prevEnhet.enhetNr === enhet.enhetNr) {
-                    newEnhetMap[geoId] = prevEnhet;
-                }
-            });
-
-            console.error(
-                `Fetch error from norg navkontorer: ${kontorerResponse.message}`
+        for (const enhet of lokalEnheter) {
+            const kontorerResponse = await fetchJson<NorgNavkontorerResponse>(
+                `${norgNavkontorerApi}/${enhet.enhetNr}`
             );
-        } else {
-            const enhetTransformed = transformNorgEnhet(enhet);
 
-            kontorerResponse.forEach((item) => {
-                newEnhetMap[item.geografiskOmraade] = enhetTransformed;
-            });
+            if (kontorerResponse.error) {
+                // Reuse the previous data if fetching new data failed
+                Object.entries(geoIdToEnhetMap).forEach(
+                    ([geoId, prevEnhet]) => {
+                        if (prevEnhet.enhetNr === enhet.enhetNr) {
+                            newEnhetMap[geoId] = prevEnhet;
+                        }
+                    }
+                );
+
+                console.error(
+                    `Fetch error from norg navkontorer: ${kontorerResponse.message}`
+                );
+            } else {
+                const enhetTransformed = transformNorgEnhet(enhet);
+
+                kontorerResponse.forEach((item) => {
+                    newEnhetMap[item.geografiskOmraade] = enhetTransformed;
+                });
+            }
         }
+
+        geoIdToEnhetMap = newEnhetMap;
+
+        console.log(
+            `Finished loading office data! Offices for ${
+                Object.keys(geoIdToEnhetMap).length
+            } geoids loaded.`
+        );
+    } catch (error) {
+        console.error('Error loading office data:', error);
     }
-
-    geoIdToEnhetMap = newEnhetMap;
-
-    console.log(
-        `Finished loading office data! Offices for ${
-            Object.keys(geoIdToEnhetMap).length
-        } geoids loaded.`
-    );
 };
