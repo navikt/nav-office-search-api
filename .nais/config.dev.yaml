@@ -15,6 +15,14 @@ spec:
   readiness:
     path: /internal/isReady
     initialDelay: 5
+  observability:
+    logging:
+      destinations:
+        - id: elastic
+        - id: loki
+    autoInstrumentation:
+      enabled: true
+      runtime: nodejs
   ingresses:
     - https://nav-office-search-api.intern.dev.nav.no
     - https://nav-office-search-api.dev-fss-pub.nais.io
