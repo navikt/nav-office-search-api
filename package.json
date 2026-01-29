@@ -24,7 +24,7 @@
     "@types/node": "24.1.0",
     "@types/node-schedule": "2.1.7",
     "@types/uuid": "10.0.0",
-    "dotenv": "16.4.5",
+    "dotenv": "17.2.3",
     "eslint": "8.57.1",
     "prettier": "3.3.3",
     "typescript": "5.6.3"
