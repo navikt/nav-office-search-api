@@ -20,13 +20,13 @@ jobs:
         steps:
             - name: Checkout repo
               uses: actions/checkout@v6
+            - name: Setup pnpm
+              run: corepack enable
             - name: Setup node.js
               uses: actions/setup-node@v6
               with:
                   node-version: 24
                   cache: 'pnpm'
-            - name: Setup pnpm
-              run: corepack enable
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
             - name: Build application
