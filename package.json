@@ -2,11 +2,12 @@
   "name": "nav-office-search-api",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.30.1+sha512.3590e550d5384caa39bd5c7c739f72270234b2f6059e13018f975c313b1eb9fefcc09714048765d4d9efe961382c312e624572c0420762bdc5d5940cdf9be73a",
   "type": "module",
   "module": "es",
   "scripts": {
     "build": "rm -fr distSrc && tsc",
-    "dev": "npm run build && node -r dotenv/config distSrc/server.js",
+    "dev": "pnpm run build && node -r dotenv/config distSrc/server.js",
     "start": "node distSrc/server.js"
   },
   "dependencies": {
