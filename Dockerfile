@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY package*.json ./
 COPY node_modules ./node_modules
-COPY distSrc ./distSrc/
+COPY distSrc ./distSrc
 
 EXPOSE 3003
 ENTRYPOINT ["node"]
