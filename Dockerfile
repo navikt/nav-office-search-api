@@ -10,4 +10,5 @@ COPY node_modules ./node_modules
 COPY distSrc ./distSrc/
 
 EXPOSE 3003
+ENTRYPOINT ["node"]
 CMD ["distSrc/server.js"]
