@@ -1,0 +1,59 @@
+name: Build, push and deploy to NAIS
+description: Build app with pnpm, build+push Docker image, then deploy to NAIS
+
+inputs:
+  environment:
+    description: Environment name
+    required: true
+  identity_provider:
+    description: NAIS workload identity provider
+    required: true
+
+outputs:
+  image:
+    description: Built image reference
+    value: ${{ steps.docker-push.outputs.image }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Setup node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: 24
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Build application
+      shell: bash
+      run: pnpm run build
+
+    - name: Delete node_modules to avoid copying them into the docker image
+      shell: bash
+      run: rm -rf node_modules
+
+    - name: Install production dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile --prod
+
+    - name: Build and push docker image
+      uses: nais/docker-build-push@v0
+      id: docker-push
+      with:
+        team: navno
+        project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+        identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+        image_suffix: ${{ inputs.environment }}
+
+    - name: Deploy to nais
+      uses: nais/deploy/actions/deploy@v2
+      env:
+        CLUSTER: ${{ inputs.environment }}-fss
+        VAR: image=${{ steps.docker-push.outputs.image }}
+        RESOURCE: .nais/config.${{ inputs.environment }}.yaml
