@@ -30,6 +30,10 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
 
+    - name: Linting the code
+      shell: bash
+      run: pnpm run lint
+
     - name: Build application
       shell: bash
       run: pnpm run build
