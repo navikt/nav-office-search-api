@@ -9,8 +9,8 @@
       "esnext",
       "dom",
     ],
-    "moduleResolution": "node",
-    "module": "esnext",
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
     "outDir": "./distSrc",
     "strict": true,
     "target": "es2017"
