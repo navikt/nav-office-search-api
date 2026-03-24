@@ -10,7 +10,7 @@
     "dev": "pnpm run build && node -r dotenv/config distSrc/server.js",
     "lint": "eslint src/",
     "start": "node distSrc/server.js",
-    "prepare": "husky"
+    "prepare": "husky | true"
   },
   "dependencies": {
     "express": "4.22.1",
