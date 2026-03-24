@@ -21,8 +21,8 @@ export const objectToQueryString = (params: object) =>
         (acc, [k, v], i) =>
             v !== undefined
                 ? `${acc}${i ? '&' : '?'}${k}=${encodeURIComponent(
-                    typeof v === 'object' ? JSON.stringify(v) : v
-                )}`
+                      typeof v === 'object' ? JSON.stringify(v) : v
+                  )}`
                 : acc,
         ''
     );
