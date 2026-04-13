@@ -21,6 +21,7 @@ jobs:
         with:
           environment: prod
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ''
 
   release:
     name: Create a new release
