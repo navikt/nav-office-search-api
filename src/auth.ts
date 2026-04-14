@@ -5,13 +5,13 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const bearerPrefix = 'Bearer';
 
-const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY);
-
 const jwksClient = jwks({
     jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI,
     cache: true,
     cacheMaxAge: 3600 * 1000,
-    requestAgent: proxyAgent,
+    ...(process.env.HTTPS_PROXY && {
+        requestAgent: new HttpsProxyAgent(process.env.HTTPS_PROXY),
+    }),
 });
 
 const getSigningKey: GetPublicKeyOrSecret = async (header, callback) => {
@@ -57,6 +57,10 @@ export const validateAndHandleRequest = (
     res: Response,
     requestHandler: (req: Request, res: Response) => any
 ) => {
+    if (process.env.NAIS_CLUSTER_NAME === 'localhost') {
+        return requestHandler(req, res);
+    }
+
     const accessToken = parseAccessToken(req);
 
     if (!accessToken) {

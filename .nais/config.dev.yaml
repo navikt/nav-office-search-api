@@ -25,7 +25,6 @@ spec:
       runtime: nodejs
   ingresses:
     - https://nav-office-search-api.intern.dev.nav.no
-    - https://nav-office-search-api.dev-fss-pub.nais.io
   env:
     - name: NPM_CONFIG_CACHE
       value: /tmp/npm-cache
@@ -33,17 +32,22 @@ spec:
       value: "/etc/ssl/ca-bundle.pem"
     - name: NORG_ENHET_API
       value: https://app-q2.adeo.no/norg2/api/v1/enhet
-    - name: TPS_ADRESSESOK_API
+    - name: PDL_API
       value: https://tpsws.intern.dev.nav.no/api/v1/adressesoek
   webproxy: true
   azure:
     application:
       enabled: true
+  tokenx:
+    enabled: true
   accessPolicy:
     inbound:
       rules:
         - application: nav-office-search
           namespace: navno
+          cluster: dev-gcp
+        - application: tokenx-token-generator
+          namespace: nais
           cluster: dev-gcp
   replicas:
     min: 1

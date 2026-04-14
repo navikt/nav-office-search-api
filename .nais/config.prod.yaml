@@ -33,7 +33,7 @@ spec:
       value: "/etc/ssl/ca-bundle.pem"
     - name: NORG_ENHET_API
       value: https://app.adeo.no/norg2/api/v1/enhet
-    - name: TPS_ADRESSESOK_API
+    - name: PDL_API
       value: https://tpsws.intern.nav.no/api/v1/adressesoek
   webproxy: true
   azure:

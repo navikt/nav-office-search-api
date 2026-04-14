@@ -7,13 +7,15 @@
   "module": "es",
   "scripts": {
     "build": "rm -fr distSrc && tsc",
-    "dev": "pnpm run build && node -r dotenv/config distSrc/server.js",
+    "dev": "tsc && (tsc -w --preserveWatchOutput &) && node --watch-path=distSrc -r dotenv/config distSrc/server.js",
     "lint": "eslint src/",
     "start": "node distSrc/server.js",
-    "prepare": "husky | true"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "express": "4.22.1",
+    "graphql": "^16.13.2",
+    "graphql-request": "^7.4.0",
     "https-proxy-agent": "7.0.6",
     "jsonwebtoken": "9.0.3",
     "jwks-rsa": "4.0.1",
