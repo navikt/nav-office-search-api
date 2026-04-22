@@ -5,7 +5,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 
 const bearerPrefix = 'Bearer';
 
-const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY);
+const proxyAgent = new HttpsProxyAgent(process.env.HTTPS_PROXY!);
 
 const jwksClient = jwks({
     jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI,
