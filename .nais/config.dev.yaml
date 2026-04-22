@@ -18,13 +18,13 @@ spec:
   observability:
     logging:
       destinations:
-        - id: elastic
         - id: loki
     autoInstrumentation:
       enabled: true
       runtime: nodejs
   ingresses:
     - https://nav-office-search-api.intern.dev.nav.no
+    - https://nav-office-search-api.dev-fss-pub.nais.io
   env:
     - name: NPM_CONFIG_CACHE
       value: /tmp/npm-cache
@@ -33,13 +33,10 @@ spec:
     - name: NORG_ENHET_API
       value: https://app-q2.adeo.no/norg2/api/v1/enhet
     - name: PDL_API
-      value: https://tpsws.intern.dev.nav.no/api/v1/adressesoek
-  webproxy: true
+      value: https://pdl-api.intern.dev.nav.no
   azure:
     application:
       enabled: true
-  tokenx:
-    enabled: true
   accessPolicy:
     inbound:
       rules:
@@ -48,11 +45,12 @@ spec:
           cluster: dev-gcp
         - application: tokenx-token-generator
           namespace: nais
-          cluster: dev-gcp
+          cluster: dev-fss
     outbound:
       rules:
         - application: pdl-api
           namespace: pdl
+          cluster: dev-fss
   replicas:
     min: 1
     max: 1
