@@ -49,6 +49,10 @@ spec:
         - application: tokenx-token-generator
           namespace: nais
           cluster: dev-gcp
+    outbound:
+      rules:
+        - application: pdl-api
+          namespace: pdl
   replicas:
     min: 1
     max: 1

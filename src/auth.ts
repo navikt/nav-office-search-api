@@ -1,87 +1,59 @@
-import jwt, { GetPublicKeyOrSecret, VerifyCallback } from 'jsonwebtoken';
-import jwks from 'jwks-rsa';
-import { Request, Response } from 'express';
-import { HttpsProxyAgent } from 'https-proxy-agent';
+import NodeCache from 'node-cache';
 
-const bearerPrefix = 'Bearer';
+const TOKEN_CACHE_KEY = 'pdl-access-token';
+const TOKEN_EXPIRY_BUFFER_SECONDS = 60;
 
-const jwksClient = jwks({
-    jwksUri: process.env.AZURE_OPENID_CONFIG_JWKS_URI,
-    cache: true,
-    cacheMaxAge: 3600 * 1000,
-    ...(process.env.HTTPS_PROXY && {
-        requestAgent: new HttpsProxyAgent(process.env.HTTPS_PROXY),
-    }),
-});
-
-const getSigningKey: GetPublicKeyOrSecret = async (header, callback) => {
-    try {
-        const key = await jwksClient.getSigningKey(header.kid);
-        callback(null, key.getPublicKey());
-    } catch (e) {
-        console.error(`Failed to get signing key - ${e}`);
-        callback(e as Error, undefined);
-    }
+type AzureAdTokenPayload = {
+    access_token: string;
+    expires_in: number;
+    token_type: string;
 };
 
-const validateAccessToken = (accessToken: string, callback: VerifyCallback) => {
-    jwt.verify(
-        accessToken,
-        getSigningKey,
-        {
-            algorithms: ['RS256', 'RS384', 'RS512'],
-            audience: process.env.AZURE_APP_CLIENT_ID,
+const tokenCache = new NodeCache();
+
+const fetchNewAccessToken = async (): Promise<AzureAdTokenPayload> => {
+    const { NAIS_TOKEN_ENDPOINT, NAIS_CLUSTER_NAME } = process.env;
+
+    if (!NAIS_TOKEN_ENDPOINT) {
+        throw new Error('NAIS_TOKEN_ENDPOINT environment variable is not set');
+    }
+
+    const response = await fetch(NAIS_TOKEN_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            identity_provider: 'entra_id',
+            target: `api://${NAIS_CLUSTER_NAME}.navno.nav-office-search-api/.default`,
         },
-        callback
-    );
-};
-
-const decodeBase64 = (b64Str: string) =>
-    Buffer.from(b64Str, 'base64').toString();
-
-const parseAccessToken = (req: Request) => {
-    const { authorization } = req.headers;
-
-    if (
-        typeof authorization !== 'string' ||
-        !authorization.startsWith(bearerPrefix)
-    ) {
-        return null;
-    }
-
-    return decodeBase64(authorization.replace(bearerPrefix, '').trim());
-};
-
-export const validateAndHandleRequest = (
-    req: Request,
-    res: Response,
-    requestHandler: (req: Request, res: Response) => any
-) => {
-    if (process.env.NAIS_CLUSTER_NAME === 'localhost') {
-        return requestHandler(req, res);
-    }
-
-    const accessToken = parseAccessToken(req);
-
-    if (!accessToken) {
-        return res
-            .status(401)
-            .json({ message: 'Missing or malformed authorization header' });
-    }
-
-    validateAccessToken(accessToken, (error, decodedToken) => {
-        if (error) {
-            console.log(`Failed to validate an access token - ${error}`);
-            return res.status(401).json({ message: `Not authorized` });
-        }
-
-        if (decodedToken) {
-            return requestHandler(req, res);
-        }
-
-        // The callback from jwt.verify should always include either the first
-        // or second parameter. But just in case it does not...
-        console.error('Invalid callback from jwt validator');
-        return res.status(500).json({ message: 'Unknown validation error' });
     });
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch access token - ${response.statusText}`
+        );
+    }
+
+    const data: AzureAdTokenPayload = await response.json();
+    return data;
+};
+
+export const getAccessToken = async (): Promise<string> => {
+    const cached = tokenCache.get<string>(TOKEN_CACHE_KEY);
+    if (cached) {
+        return cached;
+    }
+
+    console.log('Fetching new access token from NAIS token endpoint');
+
+    const tokenPayload = await fetchNewAccessToken();
+    const ttl = Math.max(
+        tokenPayload.expires_in - TOKEN_EXPIRY_BUFFER_SECONDS,
+        0
+    );
+    tokenCache.set(TOKEN_CACHE_KEY, tokenPayload.access_token, ttl);
+
+    return tokenPayload.access_token;
+};
+
+export const invalidateAccessToken = () => {
+    tokenCache.del(TOKEN_CACHE_KEY);
 };

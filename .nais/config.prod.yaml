@@ -45,6 +45,10 @@ spec:
         - application: nav-office-search
           namespace: navno
           cluster: prod-gcp
+    outbound:
+      rules:
+        - application: pdl-api
+          namespace: pdl
   replicas:
     min: 2
     max: 2

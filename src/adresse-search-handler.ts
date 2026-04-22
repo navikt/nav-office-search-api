@@ -1,58 +1,27 @@
 import { Request, Response } from 'express';
-import Cache from 'node-cache';
-import { ErrorResponse, OkResponse } from './fetch.js';
+import { ErrorResponse } from './fetch.js';
+import { getAccessToken, invalidateAccessToken } from './auth.js';
 
-import { gql, request } from 'graphql-request';
+import { gql, request, ClientError } from 'graphql-request';
 import { PdlSokAdresseResponse } from 'types/types.js';
 
 const pdlAPI = process.env.PDL_API;
 const graphQLUrl = `${pdlAPI}/graphql`;
-
-const cache = new Cache({
-    stdTTL: 3600,
-});
-
-/* const fetchTpsAdresseSok = async (
-    postnr: string,
-    kommunenr?: string,
-    husnr?: string,
-    adresse?: string
-): Promise<TpsAdresseSokResponse | ErrorResponse> => {
-    if (!adresse && cache.has(postnr)) {
-        return cache.get(postnr) as TpsAdresseSokResponse;
-    }
-
-    const response = await fetchJson<TpsAdresseSokResponse>(
-        tpswsAdressesokApi,
-        {
-            soketype: 'L',
-            alltidRetur: true,
-            postnr,
-            ...(kommunenr && { kommunenr }),
-            ...(husnr && { husnr }),
-            ...(adresse && { adresse }),
-        },
-        {
-            'Nav-Consumer-Id': 'nav-office-search-api',
-            'Nav-Call-Id': uuid(),
-        }
-    );
-
-    if (response.error) {
-        console.error(`Fetch error from tps adresse-sok: ${response.message}`);
-    } else if (!adresse) {
-        cache.set(postnr, response);
-    }
-
-    return response;
-};
-*/
 
 const queryError = (message: string): ErrorResponse => ({
     error: true,
     statusCode: 400,
     message,
 });
+
+const pdlAdresseSokRequest = (
+    bearerToken: string,
+    queryDoc: string,
+    queryVariables: Record<string, unknown>
+) =>
+    request<PdlSokAdresseResponse>(graphQLUrl, queryDoc, queryVariables, {
+        Authorization: `Bearer ${bearerToken}`,
+    });
 
 const fetchPdlAdresseSok = async (
     query: string
@@ -99,18 +68,31 @@ const fetchPdlAdresseSok = async (
         ],
     };
 
-    const token = process.env.PDL_DEVELOPMENT_TOKEN;
+    const token = process.env.PDL_DEVELOPMENT_TOKEN || (await getAccessToken());
 
     try {
-        const adresseResponse = await request<PdlSokAdresseResponse>(
-            graphQLUrl,
-            queryDoc,
-            queryVariables,
-            { Authorization: `Bearer ${token}` }
-        );
-
-        return adresseResponse;
+        return await pdlAdresseSokRequest(token, queryDoc, queryVariables);
     } catch (e) {
+        const is401 = e instanceof ClientError && e.response.status === 401;
+
+        if (is401 && !process.env.PDL_DEVELOPMENT_TOKEN) {
+            console.warn('PDL returned 401, retrying with fresh token');
+            invalidateAccessToken();
+            try {
+                const freshToken = await getAccessToken();
+                return await pdlAdresseSokRequest(
+                    freshToken,
+                    queryDoc,
+                    queryVariables
+                );
+            } catch (retryError) {
+                console.error('PDL retry after 401 also failed:', retryError);
+                return queryError(
+                    `PDL request failed after token refresh: ${retryError instanceof Error ? retryError.message : retryError}`
+                );
+            }
+        }
+
         console.error('PDL adresse-sok request failed:', e);
         return queryError(
             `PDL request failed: ${e instanceof Error ? e.message : e}`
@@ -127,7 +109,7 @@ export const adresseSearchHandler = async (req: Request, res: Response) => {
         });
     }
 
-    const response = await fetchPdlAdresseSok(queryString as string);
+    const response = await fetchPdlAdresseSok(queryString);
 
     console.log('Adresse search response:', response);
 

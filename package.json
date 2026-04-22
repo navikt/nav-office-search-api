@@ -16,8 +16,6 @@
     "express": "4.22.1",
     "graphql": "^16.13.2",
     "graphql-request": "^7.4.0",
-    "https-proxy-agent": "7.0.6",
-    "jsonwebtoken": "9.0.3",
     "jwks-rsa": "4.0.1",
     "node-cache": "5.1.2",
     "node-schedule": "2.1.1",
@@ -26,7 +24,6 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/express": "4.17.21",
-    "@types/jsonwebtoken": "9.0.10",
     "@types/node": "24.1.0",
     "@types/node-schedule": "2.1.8",
     "dotenv": "17.3.1",
