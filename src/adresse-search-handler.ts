@@ -3,7 +3,7 @@ import { ErrorResponse } from './fetch.js';
 import { getAccessToken, invalidateAccessToken } from './auth.js';
 
 import { gql, request, ClientError } from 'graphql-request';
-import { PdlSokAdresseResponse } from 'types/types.js';
+import { PdlSokAdresseResponse } from './types/types.js';
 
 const pdlAPI = process.env.PDL_API;
 const graphQLUrl = `${pdlAPI}/graphql`;
