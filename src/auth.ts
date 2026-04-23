@@ -27,9 +27,11 @@ const fetchNewAccessToken = async (): Promise<AzureAdTokenPayload> => {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
             identity_provider: 'entra_id',
             target,
-        },
+        }),
     });
 
     if (!response.ok) {
