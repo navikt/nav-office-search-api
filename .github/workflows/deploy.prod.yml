@@ -20,6 +20,7 @@ jobs:
         uses: ./.github/actions/build-and-deploy
         with:
           environment: prod
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
 
   release:
@@ -34,7 +35,7 @@ jobs:
         run: echo "TAG_NAME=$(date +%s)" >> $GITHUB_ENV
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           target_commitish: main
           tag_name: release/prod@${{ env.TAG_NAME }} # Generates a unique tag using timestamp
