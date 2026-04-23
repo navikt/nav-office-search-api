@@ -8,9 +8,9 @@ import { PdlSokAdresseResponse } from './types/types.js';
 const pdlAPI = process.env.PDL_API;
 const graphQLUrl = `${pdlAPI}/graphql`;
 
-const queryError = (message: string): ErrorResponse => ({
+const queryError = (statusCode: number, message: string): ErrorResponse => ({
     error: true,
-    statusCode: 400,
+    statusCode,
     message,
 });
 
@@ -26,10 +26,10 @@ const pdlAdresseSokRequest = (
 const fetchPdlAdresseSok = async (
     query: string
 ): Promise<PdlSokAdresseResponse | ErrorResponse> => {
-    const sanitizedQueryString = query.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+    const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s]/gu, '').trim();
 
     if (!sanitizedQueryString) {
-        return queryError('Query string is empty or invalid');
+        return queryError(400, 'Query string is empty or invalid');
     }
 
     console.log('Fetching PDL adresse-sok with query:', sanitizedQueryString);
@@ -88,6 +88,7 @@ const fetchPdlAdresseSok = async (
             } catch (retryError) {
                 console.error('PDL retry after 401 also failed:', retryError);
                 return queryError(
+                    502,
                     `PDL request failed after token refresh: ${retryError instanceof Error ? retryError.message : retryError}`
                 );
             }
@@ -95,6 +96,7 @@ const fetchPdlAdresseSok = async (
 
         console.error('PDL adresse-sok request failed:', e);
         return queryError(
+            502,
             `PDL request failed: ${e instanceof Error ? e.message : e}`
         );
     }
@@ -109,9 +111,20 @@ export const adresseSearchHandler = async (req: Request, res: Response) => {
         });
     }
 
-    const response = await fetchPdlAdresseSok(queryString);
+    try {
+        const response = await fetchPdlAdresseSok(queryString);
 
-    console.log('Adresse search response:', response);
+        if ('error' in response) {
+            return res
+                .status(response.statusCode)
+                .send({ message: response.message });
+        }
 
-    return res.status(200).send(response);
+        return res.status(200).send(response);
+    } catch (e) {
+        console.error('Unexpected error in adresse search handler:', e);
+        return res.status(500).send({
+            message: 'Internal server error',
+        });
+    }
 };

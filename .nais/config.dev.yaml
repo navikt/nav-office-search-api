@@ -31,6 +31,7 @@ spec:
       value: https://app-q2.adeo.no/norg2/api/v1/enhet
     - name: PDL_API
       value: https://pdl-api.intern.dev.nav.no
+  webproxy: true
   azure:
     application:
       enabled: true
