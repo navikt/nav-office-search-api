@@ -1,7 +1,6 @@
 import express from 'express';
 import schedule from 'node-schedule';
-import { validateAndHandleRequest } from './auth.js';
-import { postnrSearchHandler } from './postnr-search-handler.js';
+import { adresseSearchHandler } from './adresse-search-handler.js';
 import { geoIdSearchHandler } from './geoid-search-handler.js';
 import { loadNorgOfficeInfo } from './office-data.js';
 
@@ -10,13 +9,9 @@ const appPort = 3003;
 
 let isReady = false;
 
-app.get('/geoid', async (req, res) =>
-    validateAndHandleRequest(req, res, geoIdSearchHandler)
-);
+app.get('/geoid', async (req, res) => geoIdSearchHandler(req, res));
 
-app.get('/postnr', async (req, res) =>
-    validateAndHandleRequest(req, res, postnrSearchHandler)
-);
+app.get('/adresse', async (req, res) => adresseSearchHandler(req, res));
 
 app.get('/internal/isAlive', (req, res) => {
     return res.status(200).send('I am alive!');

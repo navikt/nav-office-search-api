@@ -3,3 +3,4 @@
 /.github-token
 /nav-office-search-api.iml
 /distSrc/
+.env

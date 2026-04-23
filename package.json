@@ -7,15 +7,15 @@
   "module": "es",
   "scripts": {
     "build": "rm -fr distSrc && tsc",
-    "dev": "pnpm run build && node -r dotenv/config distSrc/server.js",
+    "dev": "tsc && (tsc -w --preserveWatchOutput &) && node --watch-path=distSrc -r dotenv/config distSrc/server.js",
     "lint": "eslint src/",
     "start": "node distSrc/server.js",
-    "prepare": "husky | true"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "express": "4.22.1",
-    "https-proxy-agent": "9.0.0",
-    "jsonwebtoken": "9.0.3",
+    "graphql": "^16.13.2",
+    "graphql-request": "^7.4.0",
     "jwks-rsa": "4.0.1",
     "node-cache": "5.1.2",
     "node-schedule": "2.1.1",
@@ -24,8 +24,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/express": "4.17.21",
-    "@types/jsonwebtoken": "9.0.10",
-    "@types/node": "25.5.2",
+    "@types/node": "24.1.0",
     "@types/node-schedule": "2.1.8",
     "dotenv": "17.4.2",
     "eslint": "10.2.0",
