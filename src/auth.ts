@@ -22,7 +22,7 @@ const fetchNewAccessToken = async (): Promise<AzureAdTokenPayload> => {
         method: 'POST',
         headers: {
             identity_provider: 'entra_id',
-            target: `api://${NAIS_CLUSTER_NAME}.navno.nav-office-search-api/.default`,
+            target: `api://${NAIS_CLUSTER_NAME}.pdl.pdl-api/.default`,
         },
     });
 
