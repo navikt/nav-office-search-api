@@ -26,6 +26,7 @@ const fetchNewAccessToken = async (): Promise<AzureAdTokenPayload> => {
     const response = await fetch(NAIS_TOKEN_ENDPOINT, {
         method: 'POST',
         headers: {
+            'Content-Type': 'application/json',
             identity_provider: 'entra_id',
             target,
         },
