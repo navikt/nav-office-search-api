@@ -22,21 +22,30 @@ const pdlAdresseSokRequest = (
         Authorization: `Bearer ${bearerToken}`,
     });
 
-const fetchPdlAdresseSok = async (
-    query: string
-): Promise<PdlSokAdresseResponse | ErrorResponse> => {
+const validateQueryString = (query: string): string | null => {
     if (query.length > 150) {
-        return queryError(
-            400,
-            'Query string exceeds maximum length of 150 characters'
-        );
+        return 'Query string exceeds maximum length of 150 characters';
     }
 
     const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s]/gu, '').trim();
 
     if (!sanitizedQueryString) {
-        return queryError(400, 'Query string is empty or invalid');
+        return 'Query string is empty or invalid';
     }
+
+    return null;
+};
+
+const fetchPdlAdresseSok = async (
+    query: string
+): Promise<PdlSokAdresseResponse | ErrorResponse> => {
+    const validationError = validateQueryString(query);
+
+    if (validationError) {
+        return queryError(400, validationError);
+    }
+
+    const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s]/gu, '').trim();
 
     const queryDoc = gql`
         query sokAdresseFritekstQuery($paging: Paging, $criteria: [Criterion]) {
