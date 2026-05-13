@@ -5,8 +5,7 @@ import { getAccessToken, invalidateAccessToken } from './auth.js';
 import { gql, request, ClientError } from 'graphql-request';
 import { PdlSokAdresseResponse } from './types/types.js';
 
-const pdlAPI = process.env.PDL_API;
-const graphQLUrl = `${pdlAPI}/graphql`;
+const graphQLUrl = `${process.env.PDL_API}/graphql`;
 
 const queryError = (statusCode: number, message: string): ErrorResponse => ({
     error: true,
@@ -26,13 +25,18 @@ const pdlAdresseSokRequest = (
 const fetchPdlAdresseSok = async (
     query: string
 ): Promise<PdlSokAdresseResponse | ErrorResponse> => {
+    if (query.length > 150) {
+        return queryError(
+            400,
+            'Query string exceeds maximum length of 150 characters'
+        );
+    }
+
     const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s]/gu, '').trim();
 
     if (!sanitizedQueryString) {
         return queryError(400, 'Query string is empty or invalid');
     }
-
-    console.log('Fetching PDL adresse-sok with query:', sanitizedQueryString);
 
     const queryDoc = gql`
         query sokAdresseFritekstQuery($paging: Paging, $criteria: [Criterion]) {
