@@ -25,13 +25,13 @@
     "@eslint/js": "10.0.1",
     "@types/express": "4.17.21",
     "@types/jsonwebtoken": "9.0.10",
-    "@types/node": "25.6.0",
+    "@types/node": "25.6.2",
     "@types/node-schedule": "2.1.8",
     "dotenv": "17.4.2",
     "eslint": "10.3.0",
     "husky": "9.1.7",
     "prettier": "3.8.3",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.59.1"
+    "typescript-eslint": "8.59.2"
   }
 }
