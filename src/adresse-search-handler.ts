@@ -27,7 +27,7 @@ const validateQueryString = (query: string): string | null => {
         return 'Query string exceeds maximum length of 150 characters';
     }
 
-    const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s]/gu, '').trim();
+    const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s.,-]/gu, '').trim();
 
     if (!sanitizedQueryString) {
         return 'Query string is empty or invalid';
@@ -45,7 +45,7 @@ const fetchPdlAdresseSok = async (
         return queryError(400, validationError);
     }
 
-    const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s]/gu, '').trim();
+    const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s.,-]/gu, '').trim();
 
     const queryDoc = gql`
         query sokAdresseFritekstQuery($paging: Paging, $criteria: [Criterion]) {
