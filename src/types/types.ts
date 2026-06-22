@@ -18,3 +18,23 @@ export type PdlSokAdresseResponse = {
         };
     };
 };
+export type PdlSokBydelResponse = {
+    data: {
+        sokAdresse: {
+            aggregations: [
+                {
+                    fieldName: 'vegadresse.kommunenummer';
+                    values: {
+                        value: string;
+                    }[];
+                },
+                {
+                    fieldName: 'vegadresse.bydelsnummer';
+                    values: {
+                        value: string;
+                    }[];
+                },
+            ];
+        };
+    };
+};
