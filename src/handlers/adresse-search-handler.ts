@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { ErrorResponse } from './fetch.js';
-import { getAccessToken, invalidateAccessToken } from './auth.js';
+import { ErrorResponse } from '../helpers/fetch.js';
+import { getAccessToken, invalidateAccessToken } from '../helpers/auth.js';
 
 import { gql, request, ClientError } from 'graphql-request';
-import { PdlSokAdresseResponse } from './types/types.js';
+import { PdlSokAdresseResponse } from '../types/types.js';
 
 const graphQLUrl = `${process.env.PDL_API}/graphql`;
 
@@ -27,7 +27,9 @@ const validateQueryString = (query: string): string | null => {
         return 'Query string exceeds maximum length of 150 characters';
     }
 
-    const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s.,-]/gu, '').trim();
+    const sanitizedQueryString = query
+        .replace(/[^\p{L}\p{N}\s.,-]/gu, '')
+        .trim();
 
     if (!sanitizedQueryString) {
         return 'Query string is empty or invalid';
@@ -45,7 +47,9 @@ const fetchPdlAdresseSok = async (
         return queryError(400, validationError);
     }
 
-    const sanitizedQueryString = query.replace(/[^\p{L}\p{N}\s.,-]/gu, '').trim();
+    const sanitizedQueryString = query
+        .replace(/[^\p{L}\p{N}\s.,-]/gu, '')
+        .trim();
 
     const queryDoc = gql`
         query sokAdresseFritekstQuery($paging: Paging, $criteria: [Criterion]) {

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getOfficeData } from './office-data.js';
+import { getOfficeData } from '../norg-office-data.js';
 
 export const geoIdSearchHandler = async (req: Request, res: Response) => {
     const { id } = req.query;

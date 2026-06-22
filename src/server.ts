@@ -1,8 +1,8 @@
 import express from 'express';
 import schedule from 'node-schedule';
-import { adresseSearchHandler } from './adresse-search-handler.js';
-import { geoIdSearchHandler } from './geoid-search-handler.js';
-import { loadNorgOfficeInfo } from './office-data.js';
+import { adresseSearchHandler } from './handlers/adresse-search-handler.js';
+import { geoIdSearchHandler } from './handlers/geoid-search-handler.js';
+import { loadNorgOfficeInfo } from './norg-office-data.js';
 
 const app = express();
 const appPort = 3003;
