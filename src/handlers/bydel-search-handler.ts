@@ -9,9 +9,12 @@ const sanitizePostnummer = (postnummer: string): string | null => {
     return sanitized.length === 4 ? sanitized : null;
 };
 
-const toBydelerResponse = (response: PdlSokBydelResponse): BydelerResponse => ({
-    bydeler: response.data.sokAdresse.aggregations[1].values.map((v) => v.value),
-});
+const toBydelerResponse = (response: PdlSokBydelResponse): BydelerResponse => {
+    const bydelAgg = response.sokAdresse.aggregations.find(
+        (a) => a.fieldName === 'vegadresse.bydelsnummer'
+    );
+    return { bydeler: bydelAgg?.values.map((v) => v.value) ?? [] };
+};
 
 const fetchPdlBydelSok = async (
     postnummer: string

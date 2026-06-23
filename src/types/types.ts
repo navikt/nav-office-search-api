@@ -9,34 +9,22 @@ type Vegadresse = {
 };
 
 export type PdlSokAdresseResponse = {
-    data: {
-        sokAdresse: {
-            totalHits: number;
-            hits: {
-                vegadresse: Vegadresse;
-            }[];
-        };
+    sokAdresse: {
+        totalHits: number;
+        hits: {
+            vegadresse: Vegadresse;
+        }[];
     };
 };
 
 export type PdlSokBydelResponse = {
-    data: {
-        sokAdresse: {
-            aggregations: [
-                {
-                    fieldName: 'vegadresse.kommunenummer';
-                    values: {
-                        value: string;
-                    }[];
-                },
-                {
-                    fieldName: 'vegadresse.bydelsnummer';
-                    values: {
-                        value: string;
-                    }[];
-                },
-            ];
-        };
+    sokAdresse: {
+        aggregations: {
+            fieldName: string;
+            values: {
+                value: string;
+            }[];
+        }[];
     };
 };
 

@@ -11,8 +11,8 @@ const queryError = (statusCode: number, message: string): ErrorResponse => ({
 });
 
 const toAdresseResponse = (response: PdlSokAdresseResponse): AdresseResponse => ({
-    totalHits: response.data.sokAdresse.totalHits,
-    adresser: response.data.sokAdresse.hits.map((h) => h.vegadresse),
+    totalHits: response.sokAdresse.totalHits,
+    adresser: response.sokAdresse.hits.map((h) => h.vegadresse),
 });
 
 const validateQueryString = (query: string): string | null => {
