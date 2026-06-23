@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { ErrorResponse } from '../helpers/fetch.js';
 import { gql } from 'graphql-request';
-import { AdresseForslag, PdlSokAdresseResponse } from '../types/types.js';
+import { AdresseResponse, PdlSokAdresseResponse } from '../types/types.js';
 import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
 
 const queryError = (statusCode: number, message: string): ErrorResponse => ({
@@ -10,9 +10,9 @@ const queryError = (statusCode: number, message: string): ErrorResponse => ({
     message,
 });
 
-const toAdresseForslag = (response: PdlSokAdresseResponse): AdresseForslag => ({
+const toAdresseResponse = (response: PdlSokAdresseResponse): AdresseResponse => ({
     totalHits: response.data.sokAdresse.totalHits,
-    hits: response.data.sokAdresse.hits.map((h) => h.vegadresse),
+    adresser: response.data.sokAdresse.hits.map((h) => h.vegadresse),
 });
 
 const validateQueryString = (query: string): string | null => {
@@ -88,7 +88,7 @@ export const adresseSearchHandler = async (req: Request, res: Response) => {
 
     if (typeof queryString !== 'string' || !queryString.trim()) {
         return res.status(400).send({
-            message: 'Query string is required and must be a non-empty string',
+            error: 'Query string is required and must be a non-empty string',
         });
     }
 
@@ -98,14 +98,14 @@ export const adresseSearchHandler = async (req: Request, res: Response) => {
         if ('error' in response) {
             return res
                 .status(response.statusCode)
-                .send({ message: response.message });
+                .send({ error: response.message });
         }
 
-        return res.status(200).send(toAdresseForslag(response));
+        return res.status(200).send(toAdresseResponse(response));
     } catch (e) {
         console.error('Unexpected error in adresse search handler:', e);
         return res.status(500).send({
-            message: 'Internal server error',
+            error: 'Internal server error',
         });
     }
 };

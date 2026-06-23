@@ -40,9 +40,11 @@ export type PdlSokBydelResponse = {
     };
 };
 
-export type AdresseForslag = {
+export type AdresseResponse = {
     totalHits: number;
-    hits: Vegadresse[];
+    adresser: Vegadresse[];
 };
 export type Bydelsnummer = string;
-export type BydelerForslag = Bydelsnummer[];
+export type BydelerResponse = {
+    bydeler: Bydelsnummer[];
+};
