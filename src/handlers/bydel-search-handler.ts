@@ -1,31 +1,16 @@
 import { Request, Response } from 'express';
 import { ErrorResponse } from '../helpers/fetch.js';
-import { getAccessToken, invalidateAccessToken } from '../helpers/auth.js';
-
-import { gql, request, ClientError } from 'graphql-request';
-import { PdlSokBydelResponse } from '../types/types.js';
-
-const graphQLUrl = `${process.env.PDL_API}/graphql`;
-
-const queryError = (statusCode: number, message: string): ErrorResponse => ({
-    error: true,
-    statusCode,
-    message,
-});
-
-const pdlBydelSokRequest = (
-    bearerToken: string,
-    queryDoc: string,
-    queryVariables: Record<string, unknown>
-) =>
-    request<PdlSokBydelResponse>(graphQLUrl, queryDoc, queryVariables, {
-        Authorization: `Bearer ${bearerToken}`,
-    });
+import { gql } from 'graphql-request';
+import { BydelerForslag, PdlSokBydelResponse } from '../types/types.js';
+import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
 
 const sanitizePostnummer = (postnummer: string): string | null => {
     const sanitized = postnummer.replace(/\D/g, '');
     return sanitized.length === 4 ? sanitized : null;
 };
+
+const toBydelerForslag = (response: PdlSokBydelResponse): BydelerForslag =>
+    response.data.sokAdresse.aggregations[1].values.map((v) => v.value);
 
 const fetchPdlBydelSok = async (
     postnummer: string
@@ -36,7 +21,11 @@ const fetchPdlBydelSok = async (
             $criteria: [Criterion]
             $aggregations: [Aggregation]
         ) {
-            sokAdresse(paging: $paging, criteria: $criteria, aggregations: $aggregations) {
+            sokAdresse(
+                paging: $paging
+                criteria: $criteria
+                aggregations: $aggregations
+            ) {
                 aggregations {
                     fieldName
                     values {
@@ -70,38 +59,9 @@ const fetchPdlBydelSok = async (
         ],
     };
 
-    const token = process.env.PDL_DEVELOPMENT_TOKEN || (await getAccessToken());
-
-    try {
-        return await pdlBydelSokRequest(token, queryDoc, queryVariables);
-    } catch (e) {
-        const is401 = e instanceof ClientError && e.response.status === 401;
-
-        if (is401 && !process.env.PDL_DEVELOPMENT_TOKEN) {
-            console.warn('PDL returned 401, retrying with fresh token');
-            invalidateAccessToken();
-            try {
-                const freshToken = await getAccessToken();
-                return await pdlBydelSokRequest(
-                    freshToken,
-                    queryDoc,
-                    queryVariables
-                );
-            } catch (retryError) {
-                console.error('PDL retry after 401 also failed:', retryError);
-                return queryError(
-                    502,
-                    `PDL request failed after token refresh: ${retryError instanceof Error ? retryError.message : retryError}`
-                );
-            }
-        }
-
-        console.error('PDL adresse-sok request failed:', e);
-        return queryError(
-            502,
-            `PDL request failed: ${e instanceof Error ? e.message : e}`
-        );
-    }
+    return withPdlTokenRetry((token) =>
+        pdlRequest<PdlSokBydelResponse>(token, queryDoc, queryVariables)
+    );
 };
 
 export const bydelSearchHandler = async (req: Request, res: Response) => {
@@ -126,7 +86,7 @@ export const bydelSearchHandler = async (req: Request, res: Response) => {
                 .send({ message: response.message });
         }
 
-        return res.status(200).send(response);
+        return res.status(200).send(toBydelerForslag(response));
     } catch (e) {
         console.error('Unexpected error in bydel search handler:', e);
         return res.status(500).send({

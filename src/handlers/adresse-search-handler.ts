@@ -1,11 +1,8 @@
 import { Request, Response } from 'express';
 import { ErrorResponse } from '../helpers/fetch.js';
-import { getAccessToken, invalidateAccessToken } from '../helpers/auth.js';
-
-import { gql, request, ClientError } from 'graphql-request';
-import { PdlSokAdresseResponse } from '../types/types.js';
-
-const graphQLUrl = `${process.env.PDL_API}/graphql`;
+import { gql } from 'graphql-request';
+import { AdresseForslag, PdlSokAdresseResponse } from '../types/types.js';
+import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
 
 const queryError = (statusCode: number, message: string): ErrorResponse => ({
     error: true,
@@ -13,14 +10,10 @@ const queryError = (statusCode: number, message: string): ErrorResponse => ({
     message,
 });
 
-const pdlAdresseSokRequest = (
-    bearerToken: string,
-    queryDoc: string,
-    queryVariables: Record<string, unknown>
-) =>
-    request<PdlSokAdresseResponse>(graphQLUrl, queryDoc, queryVariables, {
-        Authorization: `Bearer ${bearerToken}`,
-    });
+const toAdresseForslag = (response: PdlSokAdresseResponse): AdresseForslag => ({
+    totalHits: response.data.sokAdresse.totalHits,
+    hits: response.data.sokAdresse.hits.map((h) => h.vegadresse),
+});
 
 const validateQueryString = (query: string): string | null => {
     if (query.length > 150) {
@@ -85,38 +78,9 @@ const fetchPdlAdresseSok = async (
         ],
     };
 
-    const token = process.env.PDL_DEVELOPMENT_TOKEN || (await getAccessToken());
-
-    try {
-        return await pdlAdresseSokRequest(token, queryDoc, queryVariables);
-    } catch (e) {
-        const is401 = e instanceof ClientError && e.response.status === 401;
-
-        if (is401 && !process.env.PDL_DEVELOPMENT_TOKEN) {
-            console.warn('PDL returned 401, retrying with fresh token');
-            invalidateAccessToken();
-            try {
-                const freshToken = await getAccessToken();
-                return await pdlAdresseSokRequest(
-                    freshToken,
-                    queryDoc,
-                    queryVariables
-                );
-            } catch (retryError) {
-                console.error('PDL retry after 401 also failed:', retryError);
-                return queryError(
-                    502,
-                    `PDL request failed after token refresh: ${retryError instanceof Error ? retryError.message : retryError}`
-                );
-            }
-        }
-
-        console.error('PDL adresse-sok request failed:', e);
-        return queryError(
-            502,
-            `PDL request failed: ${e instanceof Error ? e.message : e}`
-        );
-    }
+    return withPdlTokenRetry((token) =>
+        pdlRequest<PdlSokAdresseResponse>(token, queryDoc, queryVariables)
+    );
 };
 
 export const adresseSearchHandler = async (req: Request, res: Response) => {
@@ -137,7 +101,7 @@ export const adresseSearchHandler = async (req: Request, res: Response) => {
                 .send({ message: response.message });
         }
 
-        return res.status(200).send(response);
+        return res.status(200).send(toAdresseForslag(response));
     } catch (e) {
         console.error('Unexpected error in adresse search handler:', e);
         return res.status(500).send({

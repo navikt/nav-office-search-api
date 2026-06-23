@@ -18,6 +18,7 @@ export type PdlSokAdresseResponse = {
         };
     };
 };
+
 export type PdlSokBydelResponse = {
     data: {
         sokAdresse: {
@@ -38,3 +39,10 @@ export type PdlSokBydelResponse = {
         };
     };
 };
+
+export type AdresseForslag = {
+    totalHits: number;
+    hits: Vegadresse[];
+};
+export type Bydelsnummer = string;
+export type BydelerForslag = Bydelsnummer[];
