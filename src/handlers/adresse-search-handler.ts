@@ -63,19 +63,19 @@ const fetchPdlAdresseSok = async (
         }
     `;
 
+    const criteria = sanitizedQueryString
+        .split(/\s+/)
+        .map((part) => ({
+            fieldName: 'fritekst',
+            searchRule: { contains: part },
+        }));
+
     const queryVariables = {
         paging: {
             pageNumber: 1,
             resultsPerPage: 30,
         },
-        criteria: [
-            {
-                fieldName: 'fritekst',
-                searchRule: {
-                    contains: sanitizedQueryString,
-                },
-            },
-        ],
+        criteria,
     };
 
     return withPdlTokenRetry((token) =>
