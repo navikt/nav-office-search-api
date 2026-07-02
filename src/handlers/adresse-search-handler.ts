@@ -10,10 +10,30 @@ const queryError = (statusCode: number, message: string): ErrorResponse => ({
     message,
 });
 
-const toAdresseResponse = (response: PdlSokAdresseResponse): AdresseResponse => ({
+const toAdresseResponse = (
+    response: PdlSokAdresseResponse
+): AdresseResponse => ({
     totalHits: response.sokAdresse.totalHits,
     adresser: response.sokAdresse.hits.map((h) => h.vegadresse),
 });
+
+// House numbers with letters need to be split into individual parts.
+// Do a crude flatMap so that "Husveien 31B" becomes ["Husveien", "31", "B"]
+const splitAddressIntoParts = (address: string): string[] => {
+    return address
+        .split(/\s+/)
+        .flatMap((part) => {
+            const husnummerWithLetter = part.match(/^(\d+)([a-z]+)$/i);
+
+            if (husnummerWithLetter) {
+                const [, houseNumber, houseLetter] = husnummerWithLetter;
+                return [houseNumber, houseLetter];
+            }
+
+            return [part];
+        })
+        .filter((part) => part.trim() !== '');
+};
 
 const validateQueryString = (query: string): string | null => {
     if (query.length > 150) {
@@ -63,12 +83,12 @@ const fetchPdlAdresseSok = async (
         }
     `;
 
-    const criteria = sanitizedQueryString
-        .split(/\s+/)
-        .map((part) => ({
+    const criteria = splitAddressIntoParts(sanitizedQueryString).map(
+        (part) => ({
             fieldName: 'fritekst',
             searchRule: { contains: part },
-        }));
+        })
+    );
 
     const queryVariables = {
         paging: {
