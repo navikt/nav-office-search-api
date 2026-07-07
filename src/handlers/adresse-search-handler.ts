@@ -1,0 +1,131 @@
+import { Request, Response } from 'express';
+import { ErrorResponse } from '../helpers/fetch.js';
+import { gql } from 'graphql-request';
+import { AdresseResponse, PdlSokAdresseResponse } from '../types/types.js';
+import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
+
+const queryError = (statusCode: number, message: string): ErrorResponse => ({
+    error: true,
+    statusCode,
+    message,
+});
+
+const toAdresseResponse = (
+    response: PdlSokAdresseResponse
+): AdresseResponse => ({
+    totalHits: response.sokAdresse.totalHits,
+    adresser: response.sokAdresse.hits.map((h) => h.vegadresse),
+});
+
+// House numbers with letters need to be split into individual parts.
+// Do a crude flatMap so that "Husveien 31B" becomes ["Husveien", "31", "B"]
+const splitAddressIntoParts = (address: string): string[] => {
+    return address
+        .split(/\s+/)
+        .flatMap((part) => {
+            const husnummerWithLetter = part.match(/^(\d+)([a-z]+)$/i);
+
+            if (husnummerWithLetter) {
+                const [, houseNumber, houseLetter] = husnummerWithLetter;
+                return [houseNumber, houseLetter];
+            }
+
+            return [part];
+        })
+        .filter((part) => part.trim() !== '');
+};
+
+const validateQueryString = (query: string): string | null => {
+    if (query.length > 150) {
+        return 'Query string exceeds maximum length of 150 characters';
+    }
+
+    const sanitizedQueryString = query
+        .replace(/[^\p{L}\p{N}\s.,-]/gu, '')
+        .trim();
+
+    if (!sanitizedQueryString) {
+        return 'Query string is empty or invalid';
+    }
+
+    return null;
+};
+
+const fetchPdlAdresseSok = async (
+    query: string
+): Promise<PdlSokAdresseResponse | ErrorResponse> => {
+    const validationError = validateQueryString(query);
+
+    if (validationError) {
+        return queryError(400, validationError);
+    }
+
+    const sanitizedQueryString = query
+        .replace(/[^\p{L}\p{N}\s.,-]/gu, '')
+        .trim();
+
+    const queryDoc = gql`
+        query sokAdresseFritekstQuery($paging: Paging, $criteria: [Criterion]) {
+            sokAdresse(paging: $paging, criteria: $criteria) {
+                totalHits
+                hits {
+                    vegadresse {
+                        adressenavn
+                        husnummer
+                        husbokstav
+                        postnummer
+                        poststed
+                        kommunenummer
+                        bydelsnummer
+                    }
+                }
+            }
+        }
+    `;
+
+    const criteria = splitAddressIntoParts(sanitizedQueryString).map(
+        (part) => ({
+            fieldName: 'fritekst',
+            searchRule: { contains: part },
+        })
+    );
+
+    const queryVariables = {
+        paging: {
+            pageNumber: 1,
+            resultsPerPage: 30,
+        },
+        criteria,
+    };
+
+    return withPdlTokenRetry((token) =>
+        pdlRequest<PdlSokAdresseResponse>(token, queryDoc, queryVariables)
+    );
+};
+
+export const adresseSearchHandler = async (req: Request, res: Response) => {
+    const { queryString } = req.query;
+
+    if (typeof queryString !== 'string' || !queryString.trim()) {
+        return res.status(400).send({
+            error: 'Query string is required and must be a non-empty string',
+        });
+    }
+
+    try {
+        const response = await fetchPdlAdresseSok(queryString);
+
+        if ('error' in response) {
+            return res
+                .status(response.statusCode)
+                .send({ error: response.message });
+        }
+
+        return res.status(200).send(toAdresseResponse(response));
+    } catch (e) {
+        console.error('Unexpected error in adresse search handler:', e);
+        return res.status(500).send({
+            error: 'Internal server error',
+        });
+    }
+};

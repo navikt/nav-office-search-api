@@ -29,8 +29,8 @@ spec:
       value: "/etc/ssl/ca-bundle.pem"
     - name: NORG_ENHET_API
       value: https://app-q2.adeo.no/norg2/api/v1/enhet
-    - name: TPS_ADRESSESOK_API
-      value: https://tpsws.intern.dev.nav.no/api/v1/adressesoek
+    - name: PDL_API
+      value: https://pdl-api.intern.dev.nav.no
   webproxy: true
   azure:
     application:
@@ -41,6 +41,14 @@ spec:
         - application: nav-office-search
           namespace: navno
           cluster: dev-gcp
+        - application: tokenx-token-generator
+          namespace: nais
+          cluster: dev-fss
+    outbound:
+      rules:
+        - application: pdl-api
+          namespace: pdl
+          cluster: dev-fss
   replicas:
     min: 1
     max: 1
