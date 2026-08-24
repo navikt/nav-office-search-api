@@ -50,8 +50,10 @@ const husnummerQuerySegmentBuilder = (part: string): QuerySegment => ({
     searchRule: { wildcard: `${part}*` },
 });
 
+const isHusnummer = (part: string): boolean => /^\d{1,3}$/.test(part);
+
 const buildQuerySegment = (part: string): QuerySegment => {
-    if (/^\d{3}$/.test(part)) {
+    if (isHusnummer(part)) {
         return husnummerQuerySegmentBuilder(part);
     }
 
