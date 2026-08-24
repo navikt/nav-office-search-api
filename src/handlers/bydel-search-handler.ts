@@ -4,9 +4,9 @@ import { gql } from 'graphql-request';
 import { BydelerResponse, PdlSokBydelResponse } from '../types/types.js';
 import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
 
-const sanitizePostnummer = (postnummer: string): string | null => {
-    const sanitized = postnummer.replace(/\D/g, '');
-    return sanitized.length === 4 ? sanitized : null;
+export const sanitizePostnummer = (postnummer: string): string | null => {
+    const sanitized = postnummer.trim();
+    return /^\d{4}$/.test(sanitized) ? sanitized : null;
 };
 
 const toBydelerResponse = (response: PdlSokBydelResponse): BydelerResponse => {

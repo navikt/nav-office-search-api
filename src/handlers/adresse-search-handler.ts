@@ -35,9 +35,15 @@ const splitAddressIntoParts = (address: string): string[] => {
         .filter((part) => part.trim() !== '');
 };
 
-const validateQueryString = (query: string): string | null => {
+type QueryValidationResult =
+    | { query: string }
+    | { error: string };
+
+export const validateQueryString = (query: string): QueryValidationResult => {
     if (query.length > 150) {
-        return 'Query string exceeds maximum length of 150 characters';
+        return {
+            error: 'Query string exceeds maximum length of 150 characters',
+        };
     }
 
     const sanitizedQueryString = query
@@ -45,24 +51,20 @@ const validateQueryString = (query: string): string | null => {
         .trim();
 
     if (!sanitizedQueryString) {
-        return 'Query string is empty or invalid';
+        return { error: 'Query string is empty or invalid' };
     }
 
-    return null;
+    return { query: sanitizedQueryString };
 };
 
 const fetchPdlAdresseSok = async (
     query: string
 ): Promise<PdlSokAdresseResponse | ErrorResponse> => {
-    const validationError = validateQueryString(query);
+    const validationResult = validateQueryString(query);
 
-    if (validationError) {
-        return queryError(400, validationError);
+    if ('error' in validationResult) {
+        return queryError(400, validationResult.error);
     }
-
-    const sanitizedQueryString = query
-        .replace(/[^\p{L}\p{N}\s.,-]/gu, '')
-        .trim();
 
     const queryDoc = gql`
         query sokAdresseFritekstQuery($paging: Paging, $criteria: [Criterion]) {
@@ -83,7 +85,7 @@ const fetchPdlAdresseSok = async (
         }
     `;
 
-    const criteria = splitAddressIntoParts(sanitizedQueryString).map(
+    const criteria = splitAddressIntoParts(validationResult.query).map(
         (part) => ({
             fieldName: 'fritekst',
             searchRule: { contains: part },

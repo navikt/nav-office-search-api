@@ -18,6 +18,10 @@ const fetchNewAccessToken = async (): Promise<AzureAdTokenPayload> => {
         throw new Error('NAIS_TOKEN_ENDPOINT environment variable is not set');
     }
 
+    if (!NAIS_CLUSTER_NAME) {
+        throw new Error('NAIS_CLUSTER_NAME environment variable is not set');
+    }
+
     const target = `api://${NAIS_CLUSTER_NAME}.pdl.pdl-api/.default`;
     console.log(
         `Fetching new access token from NAIS token endpoint for target: ${target} on ${NAIS_TOKEN_ENDPOINT}`

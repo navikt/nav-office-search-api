@@ -2,7 +2,15 @@ import { ClientError, request } from 'graphql-request';
 import { getAccessToken, invalidateAccessToken } from './auth.js';
 import { ErrorResponse } from './fetch.js';
 
-const graphQLUrl = `${process.env.PDL_API}/graphql`;
+export const getPdlGraphQLUrl = (): string => {
+    const { PDL_API } = process.env;
+
+    if (!PDL_API) {
+        throw new Error('PDL_API environment variable is not set');
+    }
+
+    return `${PDL_API}/graphql`;
+};
 
 const pdlQueryError = (message: string): ErrorResponse => ({
     error: true,
@@ -15,16 +23,16 @@ export const pdlRequest = <T>(
     queryDoc: string,
     queryVariables: Record<string, unknown>
 ) =>
-    request<T>(graphQLUrl, queryDoc, queryVariables, {
+    request<T>(getPdlGraphQLUrl(), queryDoc, queryVariables, {
         Authorization: `Bearer ${bearerToken}`,
     });
 
 export const withPdlTokenRetry = async <T>(
     requestFn: (token: string) => Promise<T>
 ): Promise<T | ErrorResponse> => {
-    const token = process.env.PDL_DEVELOPMENT_TOKEN || (await getAccessToken());
-
     try {
+        const token =
+            process.env.PDL_DEVELOPMENT_TOKEN || (await getAccessToken());
         return await requestFn(token);
     } catch (e) {
         const is401 = e instanceof ClientError && e.response.status === 401;
