@@ -11,8 +11,8 @@ Runs on port 3003. Deployed as a Docker container.
 ### Data Flow
 
 1. **Startup**: `loadNorgOfficeInfo()` fetches all active local offices from NORG, then for each office fetches its geographical areas. This builds an in-memory `geoIdToEnhetMap` (geoId → `{ enhetNr, navn }`).
-2. **Scheduled refresh**: `node-schedule` re-runs `loadNorgOfficeInfo` daily at 05:00. The server reports not-ready (`503`) until the initial load completes.
-3. **Request handling**: Endpoints are unauthenticated — access is controlled via NAIS access policies. Outbound calls to PDL use a machine-to-machine token fetched from the NAIS token endpoint.
+2. **Scheduled refresh**: `node-schedule` re-runs `loadNorgOfficeInfo` daily at 05:00. The server reports not-ready (`503`) until the initial load attempt completes. `loadNorgOfficeInfo()` handles its own errors, so readiness does not guarantee that office data was loaded successfully.
+3. **Request handling**: Functional endpoints do not perform application-level authentication. The public `-fss-pub.nais.io` ingresses are reachable without credentials; `accessPolicy.inbound` only controls internal service-to-service traffic. Outbound calls to PDL use a machine-to-machine token fetched from the NAIS token endpoint.
 
 ### Endpoints
 
@@ -20,8 +20,9 @@ Runs on port 3003. Deployed as a Docker container.
 | ---------------------------------- | -------------------------------------------------------- |
 | `GET /geoid?id=<geoId>`           | Looks up office info from the in-memory map              |
 | `GET /adresse?queryString=<query>` | Freetext address search via PDL GraphQL (sokAdresse)     |
+| `GET /bydel?postnummer=<nr>`       | Looks up district numbers for a four-digit postal code   |
 | `GET /internal/isAlive`           | Liveness probe                                           |
-| `GET /internal/isReady`           | Readiness probe (503 until data is loaded)               |
+| `GET /internal/isReady`           | Readiness probe (503 until initial load attempt finishes) |
 
 ### Caching Strategy
 
@@ -50,7 +51,7 @@ Declared in `src/global.d.ts`:
 - **Framework**: Express
 - **Package manager**: pnpm
 - **Linting**: ESLint with typescript-eslint
-- **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron), `jwks-rsa`, `uuid`
+- **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron)
 
 ## Build & Run
 
@@ -75,7 +76,7 @@ NAIS app manifests live in `.nais/`:
 Key settings:
 
 - `azure.application.enabled: true` – provisions Azure AD credentials automatically
-- `accessPolicy.inbound` – only `nav-office-search` (GCP) is allowed to call this API
+- `accessPolicy.inbound` – allows internal service traffic from `nav-office-search` (and `tokenx-token-generator` in dev); it does not protect the public ingresses
 - `accessPolicy.outbound` – allows calls to `pdl-api` in the `pdl` namespace
 - Observability: logs to OpenSearch, OpenTelemetry auto-instrumentation enabled for Node.js
 - Prod runs 2 replicas; dev runs 1
@@ -84,7 +85,7 @@ Key settings:
 
 - **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Builds, pushes Docker image, deploys to `prod-fss`, then creates a GitHub Release with auto-generated release notes.
 - **Deploy to dev** (`deploy.dev.yml`): Manual trigger only (`workflow_dispatch`).
-- Both use a shared composite action (`.github/actions/build-and-deploy/action.yml`) that runs: pnpm install → lint → build → prune to prod deps → Docker build+push → nais deploy.
+- Both use a shared composite action (`.github/actions/build-and-deploy/action.yml`) that runs: pnpm install → lint → build → reinstall production dependencies → Docker build+push → nais deploy.
 
 ## Conventions
 
