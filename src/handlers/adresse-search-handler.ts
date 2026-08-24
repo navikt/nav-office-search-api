@@ -35,6 +35,29 @@ const splitAddressIntoParts = (address: string): string[] => {
         .filter((part) => part.trim() !== '');
 };
 
+type QuerySegment = {
+    fieldName: 'fritekst' | 'vegadresse.husnummer';
+    searchRule: Record<string, string>;
+};
+
+const fritekstQuerySegmentBuilder = (part: string): QuerySegment => ({
+    fieldName: 'fritekst',
+    searchRule: { contains: part },
+});
+
+const husnummerQuerySegmentBuilder = (part: string): QuerySegment => ({
+    fieldName: 'vegadresse.husnummer',
+    searchRule: { wildcard: `${part}*` },
+});
+
+const buildQuerySegment = (part: string): QuerySegment => {
+    if (/^\d{3}$/.test(part)) {
+        return husnummerQuerySegmentBuilder(part);
+    }
+
+    return fritekstQuerySegmentBuilder(part);
+};
+
 type QueryValidationResult =
     | { query: string }
     | { error: string };
@@ -86,10 +109,7 @@ const fetchPdlAdresseSok = async (
     `;
 
     const criteria = splitAddressIntoParts(validationResult.query).map(
-        (part) => ({
-            fieldName: 'fritekst',
-            searchRule: { contains: part },
-        })
+        buildQuerySegment
     );
 
     const queryVariables = {
