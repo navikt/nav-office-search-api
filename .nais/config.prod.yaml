@@ -41,10 +41,14 @@ spec:
         - application: nav-office-search
           namespace: navno
           cluster: prod-gcp
+        - application: tokenx-token-generator
+          namespace: nais
+          cluster: prod-fss
     outbound:
       rules:
         - application: pdl-api
           namespace: pdl
+          cluster: prod-fss
   replicas:
     min: 2
     max: 2
