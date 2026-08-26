@@ -1,13 +1,13 @@
-import { fetchJson, OkResponse } from './fetch.js';
+import { fetchJson, OkResponse } from './helpers/fetch.js';
 
 const norgEnhetApi = process.env.NORG_ENHET_API;
 const norgNavkontorerApi = `${process.env.NORG_ENHET_API}/navkontorer`;
 
 type GeoIdToEnhetMap = {
-    [geoId: string]: NorgEnhetTransformed;
+    [geoId: string]: NorgEnhetSimple;
 };
 
-type NorgEnhetRaw = {
+type NorgEnhet = {
     aktiveringsdato: string;
     antallRessurser: number;
     enhetId: number;
@@ -27,9 +27,9 @@ type NorgEnhetRaw = {
     versjon: number;
 };
 
-type NorgEnhetTransformed = Pick<NorgEnhetRaw, 'enhetNr' | 'navn'>;
+type NorgEnhetSimple = Pick<NorgEnhet, 'enhetNr' | 'navn'>;
 
-type NorgEnhetResponse = NorgEnhetRaw[] & OkResponse;
+type NorgEnhetResponse = NorgEnhet[] & OkResponse;
 
 type NorgNavkontorerResponse = {
     navKontorId: number;
@@ -39,7 +39,7 @@ type NorgNavkontorerResponse = {
 }[] &
     OkResponse;
 
-const transformNorgEnhet = (norgEnhet: NorgEnhetRaw): NorgEnhetTransformed => ({
+const simplifyNorgEnhet = (norgEnhet: NorgEnhet): NorgEnhetSimple => ({
     enhetNr: norgEnhet.enhetNr,
     navn: norgEnhet.navn,
 });
@@ -89,10 +89,10 @@ export const loadNorgOfficeInfo = async () => {
                     `Fetch error from norg navkontorer: ${kontorerResponse.message}`
                 );
             } else {
-                const enhetTransformed = transformNorgEnhet(enhet);
+                const enhetSimple = simplifyNorgEnhet(enhet);
 
                 kontorerResponse.forEach((item) => {
-                    newEnhetMap[item.geografiskOmraade] = enhetTransformed;
+                    newEnhetMap[item.geografiskOmraade] = enhetSimple;
                 });
             }
         }

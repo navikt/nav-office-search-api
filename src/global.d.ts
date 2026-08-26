@@ -1,11 +1,12 @@
 declare global {
     namespace NodeJS {
         interface ProcessEnv {
-            AZURE_APP_CLIENT_ID: string;
-            AZURE_OPENID_CONFIG_JWKS_URI: string;
             HTTPS_PROXY?: string;
             NORG_ENHET_API: string;
-            TPS_ADRESSESOK_API: string;
+            PDL_API: string;
+            PDL_DEVELOPMENT_TOKEN?: string;
+            NAIS_CLUSTER_NAME: string;
+            NAIS_TOKEN_ENDPOINT: string;
         }
     }
 }
