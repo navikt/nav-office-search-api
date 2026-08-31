@@ -10,6 +10,8 @@
     "dev": "tsc && (tsc -w --preserveWatchOutput &) && node --watch-path=distSrc -r dotenv/config distSrc/server.js",
     "lint": "eslint src/",
     "start": "node distSrc/server.js",
+    "test": "pnpm run build && pnpm run test:run",
+    "test:run": "node --test tests/*.test.mjs",
     "prepare": "husky || true"
   },
   "dependencies": {

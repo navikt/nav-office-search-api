@@ -41,6 +41,10 @@ runs:
       shell: bash
       run: pnpm run build
 
+    - name: Test application
+      shell: bash
+      run: pnpm run test:run
+
     - name: Delete node_modules to avoid copying them into the docker image
       shell: bash
       run: rm -rf node_modules
