@@ -59,6 +59,7 @@ Declared in `src/global.d.ts`:
 - `pnpm run dev` – Build + run with dotenv
 - `pnpm run start` – Run compiled JS
 - `pnpm run lint` – ESLint
+- `pnpm run test` – Build and run the Node.js test suite
 
 ## Deployment
 
@@ -85,7 +86,8 @@ Key settings:
 
 - **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Builds, pushes Docker image, deploys to `prod-fss`, then creates a GitHub Release with auto-generated release notes.
 - **Deploy to dev** (`deploy.dev.yml`): Manual trigger only (`workflow_dispatch`).
-- Both use a shared composite action (`.github/actions/build-and-deploy/action.yml`) that runs: pnpm install → lint → build → reinstall production dependencies → Docker build+push → nais deploy.
+- **Test pull request** (`pr-test.yml`): Runs lint, build, and tests for pull requests.
+- Both use a shared composite action (`.github/actions/build-and-deploy/action.yml`) that runs: pnpm install → lint → build → test → reinstall production dependencies → Docker build+push → nais deploy.
 
 ## Conventions
 
