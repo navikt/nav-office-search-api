@@ -1,25 +1,30 @@
 import express from 'express';
 import schedule from 'node-schedule';
 import { adresseSearchHandler } from './handlers/adresse-search-handler.js';
+import { bydelSearchHandler } from './handlers/bydel-search-handler.js';
 import { geoIdSearchHandler } from './handlers/geoid-search-handler.js';
 import { loadNorgOfficeInfo } from './norg-office-data.js';
-import { bydelSearchHandler } from './handlers/bydel-search-handler.js';
 
 const app = express();
 const appPort = 3003;
 
 let isReady = false;
 
-app.get('/geoid', async (req, res) => geoIdSearchHandler(req, res));
+const refreshOfficeData = async () => {
+    if (await loadNorgOfficeInfo()) {
+        isReady = true;
+    }
+};
 
+app.get('/geoid', async (req, res) => geoIdSearchHandler(req, res));
 app.get('/adresse', async (req, res) => adresseSearchHandler(req, res));
 app.get('/bydel', async (req, res) => bydelSearchHandler(req, res));
 
-app.get('/internal/isAlive', (req, res) => {
+app.get('/internal/isAlive', (_req, res) => {
     return res.status(200).send('I am alive!');
 });
 
-app.get('/internal/isReady', (req, res) => {
+app.get('/internal/isReady', (_req, res) => {
     if (!isReady) {
         return res.status(503).send('I am not ready...');
     }
@@ -28,13 +33,11 @@ app.get('/internal/isReady', (req, res) => {
 });
 
 const server = app.listen(appPort, () => {
-    loadNorgOfficeInfo().then(() => {
-        schedule.scheduleJob(
-            { hour: 5, minute: 0, second: 0 },
-            loadNorgOfficeInfo
-        );
-        isReady = true;
-    });
+    void refreshOfficeData();
+    schedule.scheduleJob(
+        { hour: 5, minute: 0, second: 0 },
+        refreshOfficeData
+    );
 
     console.log(`Server starting on port ${appPort}`);
 });

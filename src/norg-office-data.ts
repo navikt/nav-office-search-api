@@ -61,7 +61,7 @@ export const loadNorgOfficeInfo = async () => {
             console.error(
                 `Fetch error from norg enhet: ${enhetResponse.message}`
             );
-            return;
+            return false;
         }
 
         const newEnhetMap: GeoIdToEnhetMap = {};
@@ -104,7 +104,9 @@ export const loadNorgOfficeInfo = async () => {
                 Object.keys(geoIdToEnhetMap).length
             } geoids loaded.`
         );
+        return true;
     } catch (error) {
         console.error('Error loading office data:', error);
+        return false;
     }
 };
