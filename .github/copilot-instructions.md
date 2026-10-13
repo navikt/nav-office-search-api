@@ -16,13 +16,14 @@ Runs on port 3003. Deployed as a Docker container.
 
 ### Endpoints
 
-| Route                              | Purpose                                                  |
-| ---------------------------------- | -------------------------------------------------------- |
-| `GET /geoid?id=<geoId>`           | Looks up office info from the in-memory map              |
-| `GET /adresse?queryString=<query>` | Freetext address search via PDL GraphQL (sokAdresse)     |
-| `GET /bydel?postnummer=<nr>`       | Looks up district numbers for a four-digit postal code   |
-| `GET /internal/isAlive`           | Liveness probe                                           |
-| `GET /internal/isReady`           | Readiness probe (503 until initial load attempt finishes) |
+| Route                              | Purpose                                                   |
+| ---------------------------------- | --------------------------------------------------------- |
+| `GET /geoid?id=<geoId>`            | Looks up office info from the in-memory map               |
+| `GET /adresse?queryString=<query>` | Freetext address search via PDL GraphQL (sokAdresse)      |
+| `GET /bydel?postnummer=<nr>`       | Looks up district numbers for a four-digit postal code    |
+| `GET /internal/isAlive`            | Liveness probe                                            |
+| `GET /internal/isReady`            | Readiness probe (503 until initial load attempt finishes) |
+| `GET /internal/metrics`            | Prometheus metrics (scraped by NAIS)                      |
 
 ### Caching Strategy
 
@@ -33,6 +34,31 @@ Runs on port 3003. Deployed as a Docker container.
 
 - **NORG Enhet API** (`NORG_ENHET_API`): Office registry. Used to fetch active offices and their geographical areas (office-data.ts).
 - **PDL API** (`PDL_API`): Persondataløsningen GraphQL API. Used for freetext address search via `sokAdresse` (adresse-search-handler.ts). Authenticated with a machine-to-machine Entra ID token obtained from the NAIS token endpoint.
+
+## Metrics
+
+`src/metrics.ts` defines business metrics with `@prometheus-io/client` (the official successor of `prom-client`) on a dedicated registry, exposed at `/internal/metrics` and scraped via `spec.prometheus` in the NAIS manifests. HTTP latency/status is covered by OTel auto-instrumentation and ingress metrics, so app metrics focus on business outcomes:
+
+| Metric                                                      | Type      | Labels                                                                               |
+| ----------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------ |
+| `nav_office_search_api_lookups_total`                       | counter   | `operation` = geoid/adresse/bydel, `result` = hits/empty/invalid/error               |
+| `nav_office_search_api_norg_refresh_total`                  | counter   | `result` = success/failure                                                           |
+| `nav_office_search_api_norg_last_success_timestamp_seconds` | gauge     | –                                                                                    |
+| `nav_office_search_api_norg_geoids_loaded`                  | gauge     | –                                                                                    |
+| `nav_office_search_api_norg_refresh_failed_offices`         | gauge     | – (offices whose areas failed to load in the last refresh; stale data reused)        |
+
+The `result` vocabulary and `operation` label deliberately match the nav-office-search frontend (`nav_office_search_*`), which measures the same lookups from the client side. Process metrics come from NAIS, and request latency from OTel/ingress, so they are not duplicated here.
+
+Never use user input (geoIds, addresses, postnummer) as label values – keep cardinality low.
+
+### Alerts
+
+`.nais/alerts.yaml` (a `PrometheusRule`, deployed to prod-fss only by `.github/actions/build-and-deploy`) covers only what the frontend can't see. The frontend's alerts are the canary for user-facing failures, including PDL outages, and the metrics above are for diagnosing them:
+
+- `NavOfficeSearchApiNorgDataStale`: no successful NORG refresh in 2 days. A failed refresh keeps the pods ready with the previous data, so nothing user-facing notices.
+- `NavOfficeSearchApiPdlRejectingRequests`: PDL answers 4xx or GraphQL errors – access policy, Entra config or our queries, so ours to fix. PDL 5xx/network errors are PDL's.
+
+Don't use `{{ }}` in the alert annotations: nais deploy templates every resource with Handlebars.
 
 ## Required Environment Variables
 
@@ -51,7 +77,7 @@ Declared in `src/global.d.ts`:
 - **Framework**: Express
 - **Package manager**: pnpm
 - **Linting**: ESLint with typescript-eslint
-- **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron)
+- **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron), `@prometheus-io/client` (metrics)
 
 ## Build & Run
 
@@ -79,7 +105,7 @@ Key settings:
 - `azure.application.enabled: true` – provisions Azure AD credentials automatically
 - `accessPolicy.inbound` – allows internal service traffic from `nav-office-search` (and `tokenx-token-generator` in dev); it does not protect the public ingresses
 - `accessPolicy.outbound` – allows calls to `pdl-api` in the `pdl` namespace
-- Observability: logs to OpenSearch, OpenTelemetry auto-instrumentation enabled for Node.js
+- Observability: logs to OpenSearch, OpenTelemetry auto-instrumentation enabled for Node.js, Prometheus scraping of `/internal/metrics`
 - Prod runs 2 replicas; dev runs 1
 
 ### GitHub Actions Workflows

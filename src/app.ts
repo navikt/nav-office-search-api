@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { adresseSearchHandler } from './handlers/adresse-search-handler.js';
 import { bydelSearchHandler } from './handlers/bydel-search-handler.js';
 import { geoIdSearchHandler } from './handlers/geoid-search-handler.js';
+import { metricsRegistry } from './metrics.js';
 
 export const createReadinessHandler =
     (isReady: () => boolean) => (_req: Request, res: Response) => {
@@ -24,6 +25,16 @@ export const createApp = (isReady: () => boolean) => {
     });
 
     app.get('/internal/isReady', createReadinessHandler(isReady));
+
+    app.get('/internal/metrics', async (_req, res) => {
+        try {
+            res.set('Content-Type', metricsRegistry.contentType);
+            return res.send(await metricsRegistry.metrics());
+        } catch (e) {
+            console.error('Failed to collect metrics:', e);
+            return res.status(500).send('Failed to collect metrics');
+        }
+    });
 
     return app;
 };

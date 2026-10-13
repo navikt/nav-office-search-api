@@ -3,9 +3,8 @@ import test from 'node:test';
 
 process.env.NORG_ENHET_API = 'https://norg.example.test';
 
-const { getOfficeData, loadNorgOfficeInfo } = await import(
-    '../distSrc/norg-office-data.js'
-);
+const { getOfficeData, loadNorgOfficeInfo } =
+    await import('../distSrc/norg-office-data.js');
 
 test('reports whether the NORG office-data refresh succeeded', async () => {
     const originalFetch = globalThis.fetch;

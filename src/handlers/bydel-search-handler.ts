@@ -3,6 +3,7 @@ import { ErrorResponse } from '../helpers/fetch.js';
 import { gql } from 'graphql-request';
 import { BydelerResponse, PdlSokBydelResponse } from '../types/types.js';
 import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
+import { recordLookup } from '../metrics.js';
 
 export const sanitizePostnummer = (postnummer: string): string | null => {
     const sanitized = postnummer.trim();
@@ -72,12 +73,14 @@ export const bydelSearchHandler = async (req: Request, res: Response) => {
     const { postnummer } = req.query;
 
     if (typeof postnummer !== 'string' || !postnummer.trim()) {
+        recordLookup('bydel', 'invalid');
         return res.status(400).send({ error: 'Postnummer is required' });
     }
 
     const sanitizedPostnummer = sanitizePostnummer(postnummer);
 
     if (!sanitizedPostnummer) {
+        recordLookup('bydel', 'invalid');
         return res.status(400).send({ error: 'Invalid postnummer' });
     }
 
@@ -85,14 +88,25 @@ export const bydelSearchHandler = async (req: Request, res: Response) => {
         const response = await fetchPdlBydelSok(sanitizedPostnummer);
 
         if ('error' in response) {
+            recordLookup(
+                'bydel',
+                response.statusCode < 500 ? 'invalid' : 'error'
+            );
             return res
                 .status(response.statusCode)
                 .send({ error: response.message });
         }
 
-        return res.status(200).send(toBydelerResponse(response));
+        const bydelerResponse = toBydelerResponse(response);
+        recordLookup(
+            'bydel',
+            bydelerResponse.bydeler.length > 0 ? 'hits' : 'empty'
+        );
+
+        return res.status(200).send(bydelerResponse);
     } catch (e) {
         console.error('Unexpected error in bydel search handler:', e);
+        recordLookup('bydel', 'error');
         return res.status(500).send({
             error: 'Internal server error',
         });

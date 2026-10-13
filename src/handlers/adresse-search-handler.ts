@@ -3,6 +3,7 @@ import { ErrorResponse } from '../helpers/fetch.js';
 import { gql } from 'graphql-request';
 import { AdresseResponse, PdlSokAdresseResponse } from '../types/types.js';
 import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
+import { recordLookup } from '../metrics.js';
 
 const queryError = (statusCode: number, message: string): ErrorResponse => ({
     error: true,
@@ -60,9 +61,7 @@ const buildQuerySegment = (part: string): QuerySegment => {
     return fritekstQuerySegmentBuilder(part);
 };
 
-type QueryValidationResult =
-    | { query: string }
-    | { error: string };
+type QueryValidationResult = { query: string } | { error: string };
 
 export const validateQueryString = (query: string): QueryValidationResult => {
     if (query.length > 150) {
@@ -131,6 +130,7 @@ export const adresseSearchHandler = async (req: Request, res: Response) => {
     const { queryString } = req.query;
 
     if (typeof queryString !== 'string' || !queryString.trim()) {
+        recordLookup('adresse', 'invalid');
         return res.status(400).send({
             error: 'Query string is required and must be a non-empty string',
         });
@@ -140,14 +140,25 @@ export const adresseSearchHandler = async (req: Request, res: Response) => {
         const response = await fetchPdlAdresseSok(queryString);
 
         if ('error' in response) {
+            recordLookup(
+                'adresse',
+                response.statusCode < 500 ? 'invalid' : 'error'
+            );
             return res
                 .status(response.statusCode)
                 .send({ error: response.message });
         }
 
-        return res.status(200).send(toAdresseResponse(response));
+        const adresseResponse = toAdresseResponse(response);
+        recordLookup(
+            'adresse',
+            adresseResponse.adresser.length > 0 ? 'hits' : 'empty'
+        );
+
+        return res.status(200).send(adresseResponse);
     } catch (e) {
         console.error('Unexpected error in adresse search handler:', e);
+        recordLookup('adresse', 'error');
         return res.status(500).send({
             error: 'Internal server error',
         });

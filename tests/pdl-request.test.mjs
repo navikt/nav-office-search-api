@@ -18,10 +18,7 @@ test('validates and builds the PDL GraphQL URL', () => {
         );
 
         process.env.PDL_API = 'https://pdl.example.test';
-        assert.equal(
-            getPdlGraphQLUrl(),
-            'https://pdl.example.test/graphql'
-        );
+        assert.equal(getPdlGraphQLUrl(), 'https://pdl.example.test/graphql');
     } finally {
         if (originalPdlApi === undefined) {
             delete process.env.PDL_API;

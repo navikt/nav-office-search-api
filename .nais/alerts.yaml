@@ -1,0 +1,26 @@
+# Only the signals nav-office-search (the frontend) can't see. User-facing failures, including
+# PDL being down, alert there; the metrics here are for diagnosing them.
+# No double curly braces in this file, not even in comments: nais deploy templates every resource with Handlebars.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nav-office-search-api-alerts
+  namespace: navno
+  labels:
+    team: navno
+spec:
+  groups:
+    - name: nav-office-search-api
+      rules:
+        # The daily refresh can fail while the pods stay ready with yesterday's data, so
+        # nothing user-facing notices. Office mappings rarely change, so a couple of days is fine.
+        - alert: NavOfficeSearchApiNorgDataStale
+          expr: time() - max(nav_office_search_api_norg_last_success_timestamp_seconds) > 2 * 86400
+          for: 1h
+          annotations:
+            summary: nav-office-search-api has not refreshed office data from NORG for over 2 days
+            consequence: Office lookups use stale NORG data. Changed or new offices are wrong or missing.
+            action: Check the logs for "Fetch error from norg" or "Error loading office data". Restarting the pods triggers a new load.
+          labels:
+            namespace: navno
+            severity: warning
