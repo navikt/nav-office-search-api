@@ -15,10 +15,7 @@ const refreshOfficeData = async () => {
 
 const server = app.listen(appPort, () => {
     void refreshOfficeData();
-    schedule.scheduleJob(
-        { hour: 5, minute: 0, second: 0 },
-        refreshOfficeData
-    );
+    schedule.scheduleJob({ hour: 5, minute: 0, second: 0 }, refreshOfficeData);
 
     console.log(`Server starting on port ${appPort}`);
 });

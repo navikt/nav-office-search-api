@@ -1,4 +1,8 @@
 import { fetchJson, OkResponse } from './helpers/fetch.js';
+import {
+    recordNorgRefreshFailure,
+    recordNorgRefreshSuccess,
+} from './metrics.js';
 
 const norgEnhetApi = process.env.NORG_ENHET_API;
 const norgNavkontorerApi = `${process.env.NORG_ENHET_API}/navkontorer`;
@@ -61,10 +65,12 @@ export const loadNorgOfficeInfo = async () => {
             console.error(
                 `Fetch error from norg enhet: ${enhetResponse.message}`
             );
+            recordNorgRefreshFailure();
             return false;
         }
 
         const newEnhetMap: GeoIdToEnhetMap = {};
+        let failedOffices = 0;
 
         const lokalEnheter = enhetResponse.filter(
             (item) => item.type === 'LOKAL'
@@ -76,6 +82,7 @@ export const loadNorgOfficeInfo = async () => {
             );
 
             if (kontorerResponse.error) {
+                failedOffices++;
                 // Reuse the previous data if fetching new data failed
                 Object.entries(geoIdToEnhetMap).forEach(
                     ([geoId, prevEnhet]) => {
@@ -99,14 +106,16 @@ export const loadNorgOfficeInfo = async () => {
 
         geoIdToEnhetMap = newEnhetMap;
 
+        const geoIdsLoaded = Object.keys(geoIdToEnhetMap).length;
+        recordNorgRefreshSuccess(geoIdsLoaded, failedOffices);
+
         console.log(
-            `Finished loading office data! Offices for ${
-                Object.keys(geoIdToEnhetMap).length
-            } geoids loaded.`
+            `Finished loading office data! Offices for ${geoIdsLoaded} geoids loaded.`
         );
         return true;
     } catch (error) {
         console.error('Error loading office data:', error);
+        recordNorgRefreshFailure();
         return false;
     }
 };

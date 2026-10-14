@@ -35,9 +35,7 @@ export const fetchJson = async <T>(
     const url = `${apiUrl}${params ? objectToQueryString(params) : ''}`;
 
     try {
-        const res = await fetch(url, {
-            headers: headers,
-        });
+        const res = await fetch(url, { headers });
 
         const isJson = res.headers
             ?.get('content-type')

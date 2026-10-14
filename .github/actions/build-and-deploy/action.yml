@@ -68,3 +68,11 @@ runs:
         CLUSTER: ${{ inputs.environment }}-fss
         VAR: image=${{ steps.docker-push.outputs.image }}
         RESOURCE: .nais/config.${{ inputs.environment }}.yaml
+
+    # Prod only, so dev doesn't page the team channel
+    - name: Deploy alerts to nais
+      if: ${{ inputs.environment == 'prod' }}
+      uses: nais/deploy/actions/deploy@v2
+      env:
+        CLUSTER: prod-fss
+        RESOURCE: .nais/alerts.yaml

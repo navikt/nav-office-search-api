@@ -67,9 +67,7 @@ test('maps successful PDL responses to the public response contracts', async () 
 
         globalThis.fetch = async (_input, init) => {
             const requestBody = JSON.parse(init.body);
-            const data = requestBody.query.includes(
-                'sokAdresseFritekstQuery'
-            )
+            const data = requestBody.query.includes('sokAdresseFritekstQuery')
                 ? {
                       sokAdresse: {
                           totalHits: 1,
