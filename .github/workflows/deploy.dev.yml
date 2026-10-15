@@ -2,19 +2,18 @@ name: Deploy to dev
 on: workflow_dispatch
 
 jobs:
-  deploy:
-    name: Deploy to dev
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v7
+  build:
+    uses: navikt/navno-ci/.github/workflows/node-build.yml@v1
+    permissions: { contents: read, id-token: write }
+    with:
+      image-suffix: dev
+    secrets: inherit
 
-      - name: Build and deploy to dev
-        uses: ./.github/actions/build-and-deploy
-        with:
-          environment: dev
-          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
-          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+  deploy:
+    needs: build
+    uses: navikt/navno-ci/.github/workflows/nais-deploy.yml@v1
+    permissions: { contents: read, id-token: write }
+    with:
+      cluster: dev-fss
+      resource: .nais/config.dev.yaml
+      var: image=${{ needs.build.outputs.image }}

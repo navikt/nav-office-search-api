@@ -53,7 +53,7 @@ Never use user input (geoIds, addresses, postnummer) as label values – keep ca
 
 ### Alerts
 
-`.nais/alerts.yaml` (a `PrometheusRule`, deployed to prod-fss only by `.github/actions/build-and-deploy`) covers only what the frontend can't see. The frontend's alerts are the canary for user-facing failures, including PDL outages, and the metrics above are for diagnosing them:
+`.nais/alerts.yaml` (a `PrometheusRule`, deployed to prod-fss only by `deploy.prod.yml`) covers only what the frontend can't see. The frontend's alerts are the canary for user-facing failures, including PDL outages, and the metrics above are for diagnosing them:
 
 - `NavOfficeSearchApiNorgDataStale`: no successful NORG refresh in 2 days. A failed refresh keeps the pods ready with the previous data, so nothing user-facing notices.
 - `NavOfficeSearchApiPdlRejectingRequests`: PDL answers 4xx or GraphQL errors – access policy, Entra config or our queries, so ours to fix. PDL 5xx/network errors are PDL's.
@@ -113,7 +113,7 @@ Key settings:
 - **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Builds, pushes Docker image, deploys to `prod-fss`, then creates a GitHub Release with auto-generated release notes.
 - **Deploy to dev** (`deploy.dev.yml`): Manual trigger only (`workflow_dispatch`).
 - **Test pull request** (`pr-test.yml`): Runs lint, build, and tests for pull requests.
-- Both use a shared composite action (`.github/actions/build-and-deploy/action.yml`) that runs: pnpm install → lint → build → test → reinstall production dependencies → Docker build+push → nais deploy.
+- All workflows use the reusable workflows in `navikt/navno-ci` (`node-build.yml`, `nais-deploy.yml`, `release.yml`, `dependabot-lockfile.yml`), which are built on `navikt/navno-actions`. The build runs: pnpm install → build → lint → test → reinstall production dependencies → Docker build+push; then `nais-deploy.yml` deploys. Node version comes from `engines.node` in package.json.
 
 ## Conventions
 
