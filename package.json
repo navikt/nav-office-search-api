@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@prometheus-io/client": "0.16.1",
-    "express": "4.22.1",
+    "express": "5.3.0",
     "graphql": "16.14.2",
     "graphql-request": "7.4.0",
     "node-cache": "5.1.2",
@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
-    "@types/express": "4.17.21",
+    "@types/express": "5.0.6",
     "@types/node": "25.9.1",
     "@types/node-schedule": "2.1.8",
     "dotenv": "18.0.8",
