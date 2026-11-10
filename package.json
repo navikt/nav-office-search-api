@@ -3,16 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "engines": {
-    "node": "24"
+    "node": "26"
   },
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "^24.19.0",
+      "version": "26.13.0",
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@11.1.1+sha512.d1fdf5f73c617b64fa1a56a81c3c8dfe0e966e33a6010aa256b517ae77be21d93e05affc0de1a83b0e4f29d569f68b446ae8f068cd7247c0bb3df0fb4d7bdf9a",
+  "packageManager": "pnpm@12.18.0+sha512.9d7882d5dc82147ecfc4e062aa34834e0ad0296710a1837a1115ae012127d36b7109e321ac1598a1dd0a65597681b1e99917e12ed0d749eae91187943363beb3",
   "type": "module",
   "module": "es",
   "scripts": {
@@ -35,7 +35,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/express": "4.17.21",
-    "@types/node": "25.9.1",
+    "@types/node": "26.6.5",
     "@types/node-schedule": "2.1.8",
     "dotenv": "18.0.9",
     "eslint": "10.14.0",
