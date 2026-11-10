@@ -30,18 +30,18 @@
     "graphql": "16.14.2",
     "graphql-request": "7.4.0",
     "node-cache": "5.1.2",
-    "node-schedule": "2.1.1"
+    "node-schedule": "2.1.2"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/express": "4.17.21",
     "@types/node": "25.9.1",
     "@types/node-schedule": "2.1.8",
-    "dotenv": "18.0.8",
-    "eslint": "10.13.0",
+    "dotenv": "18.0.9",
+    "eslint": "10.14.0",
     "husky": "9.1.7",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.71.2"
+    "typescript-eslint": "8.72.1"
   }
 }
