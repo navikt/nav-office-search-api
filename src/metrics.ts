@@ -16,64 +16,58 @@ export const lookupResults = ['hits', 'empty', 'invalid', 'error'] as const;
 export type LookupResult = (typeof lookupResults)[number];
 
 const lookupsCounter = new Counter({
-    name: 'nav_office_search_api_lookups_total',
-    help: 'Number of lookups handled, by operation and result',
-    labelNames: ['operation', 'result'] as const,
-    registers: [metricsRegistry],
+	name: 'nav_office_search_api_lookups_total',
+	help: 'Number of lookups handled, by operation and result',
+	labelNames: ['operation', 'result'] as const,
+	registers: [metricsRegistry],
 });
 
 // Initialize all label combinations to 0, so rate()/increase() work from the first scrape
 for (const operation of lookupOperations) {
-    for (const result of lookupResults) {
-        lookupsCounter.inc({ operation, result }, 0);
-    }
+	for (const result of lookupResults) {
+		lookupsCounter.inc({ operation, result }, 0);
+	}
 }
 
-export const recordLookup = (
-    operation: LookupOperation,
-    result: LookupResult
-) => {
-    lookupsCounter.inc({ operation, result });
+export const recordLookup = (operation: LookupOperation, result: LookupResult) => {
+	lookupsCounter.inc({ operation, result });
 };
 
 const norgRefreshCounter = new Counter({
-    name: 'nav_office_search_api_norg_refresh_total',
-    help: 'Number of NORG office data refresh attempts, by result',
-    labelNames: ['result'] as const,
-    registers: [metricsRegistry],
+	name: 'nav_office_search_api_norg_refresh_total',
+	help: 'Number of NORG office data refresh attempts, by result',
+	labelNames: ['result'] as const,
+	registers: [metricsRegistry],
 });
 
 norgRefreshCounter.inc({ result: 'success' }, 0);
 norgRefreshCounter.inc({ result: 'failure' }, 0);
 
 const norgLastSuccessGauge = new Gauge({
-    name: 'nav_office_search_api_norg_last_success_timestamp_seconds',
-    help: 'Unix time of the last successful NORG office data refresh',
-    registers: [metricsRegistry],
+	name: 'nav_office_search_api_norg_last_success_timestamp_seconds',
+	help: 'Unix time of the last successful NORG office data refresh',
+	registers: [metricsRegistry],
 });
 
 const norgGeoIdsLoadedGauge = new Gauge({
-    name: 'nav_office_search_api_norg_geoids_loaded',
-    help: 'Number of geoIds currently mapped to an office',
-    registers: [metricsRegistry],
+	name: 'nav_office_search_api_norg_geoids_loaded',
+	help: 'Number of geoIds currently mapped to an office',
+	registers: [metricsRegistry],
 });
 
 const norgFailedOfficesGauge = new Gauge({
-    name: 'nav_office_search_api_norg_refresh_failed_offices',
-    help: 'Number of offices whose geographic areas could not be fetched in the last successful refresh (previous data reused)',
-    registers: [metricsRegistry],
+	name: 'nav_office_search_api_norg_refresh_failed_offices',
+	help: 'Number of offices whose geographic areas could not be fetched in the last successful refresh (previous data reused)',
+	registers: [metricsRegistry],
 });
 
-export const recordNorgRefreshSuccess = (
-    geoIdsLoaded: number,
-    failedOffices: number
-) => {
-    norgRefreshCounter.inc({ result: 'success' });
-    norgLastSuccessGauge.setToCurrentTime();
-    norgGeoIdsLoadedGauge.set(geoIdsLoaded);
-    norgFailedOfficesGauge.set(failedOffices);
+export const recordNorgRefreshSuccess = (geoIdsLoaded: number, failedOffices: number) => {
+	norgRefreshCounter.inc({ result: 'success' });
+	norgLastSuccessGauge.setToCurrentTime();
+	norgGeoIdsLoadedGauge.set(geoIdsLoaded);
+	norgFailedOfficesGauge.set(failedOffices);
 };
 
 export const recordNorgRefreshFailure = () => {
-    norgRefreshCounter.inc({ result: 'failure' });
+	norgRefreshCounter.inc({ result: 'failure' });
 };
