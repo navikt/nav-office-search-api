@@ -12,11 +12,29 @@ export const getPdlGraphQLUrl = (): string => {
     return `${PDL_API}/graphql`;
 };
 
-const pdlQueryError = (message: string): ErrorResponse => ({
+// Error-boundry, log the error here but don't send the message downstream
+const pdlQueryError = (): ErrorResponse => ({
     error: true,
     statusCode: 502,
-    message,
+    message: 'PDL request failed',
 });
+
+// A ClientError's message holds our whole request, with the searched address,
+// and PDL's answer. Log only its HTTP status and PDL's error codes.
+const logPdlFailure = (description: string, e: unknown) => {
+    if (e instanceof ClientError) {
+        const codes =
+            e.response.errors?.map((error) =>
+                String(error.extensions?.code ?? 'unknown')
+            ) ?? [];
+        console.error(
+            `${description}: HTTP ${e.response.status}, error codes: ${codes.join(', ') || 'none'}`
+        );
+        return;
+    }
+
+    console.error(`${description}:`, e);
+};
 
 export const pdlRequest = <T>(
     bearerToken: string,
@@ -44,16 +62,12 @@ export const withPdlTokenRetry = async <T>(
                 const freshToken = await getAccessToken();
                 return await requestFn(freshToken);
             } catch (retryError) {
-                console.error('PDL retry after 401 also failed:', retryError);
-                return pdlQueryError(
-                    `PDL request failed after token refresh: ${retryError instanceof Error ? retryError.message : retryError}`
-                );
+                logPdlFailure('PDL retry after 401 also failed', retryError);
+                return pdlQueryError();
             }
         }
 
-        console.error('PDL request failed:', e);
-        return pdlQueryError(
-            `PDL request failed: ${e instanceof Error ? e.message : e}`
-        );
+        logPdlFailure('PDL request failed', e);
+        return pdlQueryError();
     }
 };
