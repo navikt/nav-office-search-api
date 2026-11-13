@@ -27,6 +27,20 @@ const invokeHandler = async (handler, query) => {
     return { statusCode, body };
 };
 
+const captureLogs = async (fn) => {
+    const original = { ...console };
+    const lines = [];
+    for (const level of ['log', 'warn', 'error']) {
+        console[level] = (...args) => lines.push(args.map(String).join(' '));
+    }
+    try {
+        await fn();
+    } finally {
+        Object.assign(console, original);
+    }
+    return lines.join('\n');
+};
+
 test('validates and sanitizes address queries', () => {
     assert.deepEqual(validateQueryString('  Storgata 31B!  '), {
         query: 'Storgata 31B',
@@ -132,7 +146,7 @@ test('maps successful PDL responses to the public response contracts', async () 
     }
 });
 
-test('maps PDL failures to a 502 handler response', async () => {
+test('maps PDL failures to a 502 without the searched address or PDL text', async () => {
     const originalFetch = globalThis.fetch;
     const originalPdlApi = process.env.PDL_API;
     const originalDevelopmentToken = process.env.PDL_DEVELOPMENT_TOKEN;
@@ -143,7 +157,12 @@ test('maps PDL failures to a 502 handler response', async () => {
         globalThis.fetch = async () =>
             new Response(
                 JSON.stringify({
-                    errors: [{ message: 'PDL unavailable' }],
+                    errors: [
+                        {
+                            message: 'PDL unavailable',
+                            extensions: { code: 'server_error' },
+                        },
+                    ],
                 }),
                 {
                     status: 503,
@@ -151,12 +170,20 @@ test('maps PDL failures to a 502 handler response', async () => {
                 }
             );
 
-        const response = await invokeHandler(adresseSearchHandler, {
-            queryString: 'Storgata 31B',
+        let response;
+        const logs = await captureLogs(async () => {
+            response = await invokeHandler(adresseSearchHandler, {
+                queryString: 'Storgata 31B',
+            });
         });
 
         assert.equal(response.statusCode, 502);
-        assert.match(response.body.error, /PDL unavailable/);
+        assert.deepEqual(response.body, { error: 'PDL request failed' });
+
+        assert.match(logs, /503/);
+        assert.match(logs, /server_error/);
+        assert.doesNotMatch(logs, /Storgata/);
+        assert.doesNotMatch(logs, /PDL unavailable/);
     } finally {
         globalThis.fetch = originalFetch;
 
