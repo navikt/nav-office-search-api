@@ -14,9 +14,9 @@ Runs on port 3003. Deployed as a Docker container.
 server/
   main.ts          starts the server: first NORG load, daily refresh, shutdown
   app.ts           the Express app: routes and probes
+  env.ts           the environment, checked with zod at startup
   metrics.ts       business metrics
   fetch.ts         fetchJson (NORG) and the ErrorResponse type
-  global.d.ts      types for process.env
   offices/
     offices.ts     the geoId → office map, loaded from NORG
     route.ts       GET /geoid
@@ -28,6 +28,7 @@ server/
     types.ts       PDL's answers and ours
   *.test.ts        next to the code they test
 test/              test helpers: the app on a free port, the fetch mock, fixtures
+  mocks/dev.ts     answers NORG, PDL and Texas from the fixtures in `pnpm dev`
 ```
 
 ### Data Flow
@@ -54,8 +55,8 @@ test/              test helpers: the app on a free port, the fetch mock, fixture
 
 ### External Dependencies (APIs)
 
-- **NORG Enhet API** (`NORG_ENHET_API`): Office registry. Used to fetch active offices and their geographical areas (office-data.ts).
-- **PDL API** (`PDL_API`): Persondataløsningen GraphQL API. Used for freetext address search via `sokAdresse` (adresse-search-handler.ts). Authenticated with a machine-to-machine Entra ID token obtained from the NAIS token endpoint.
+- **NORG Enhet API** (`NORG2_ORIGIN`): Office registry. Used to fetch active offices and their geographical areas (`server/offices/offices.ts`).
+- **PDL API** (`PDL_ORIGIN`): Persondataløsningen GraphQL API. Used for freetext address search and bydeler via `sokAdresse` (`server/pdl/`). Authenticated with a machine-to-machine Entra ID token for `PDL_TOKEN_TARGET`, obtained from the NAIS token endpoint.
 
 ## Metrics
 
@@ -75,7 +76,7 @@ Never use user input (geoIds, addresses, postnummer) as label values – keep ca
 
 ### Alerts
 
-`.nais/alerts.yaml` (a `PrometheusRule`, deployed to prod-fss only by `deploy.prod.yml`) covers only what the frontend can't see. The frontend's alerts are the canary for user-facing failures, including PDL outages, and the metrics above are for diagnosing them:
+`.nais/alerts.yml` (a `PrometheusRule`, deployed to prod-fss only by `deploy.prod.yml`) covers only what the frontend can't see. The frontend's alerts are the canary for user-facing failures, including PDL outages, and the metrics above are for diagnosing them:
 
 - `NavOfficeSearchApiNorgDataStale`: no successful NORG refresh in 2 days. A failed refresh keeps the pods ready with the previous data, so nothing user-facing notices.
 - `NavOfficeSearchApiPdlRejectingRequests`: PDL answers 4xx or GraphQL errors – access policy, Entra config or our queries, so ours to fix. PDL 5xx/network errors are PDL's.
@@ -84,13 +85,16 @@ Don't use `{{ }}` in the alert annotations: nais deploy templates every resource
 
 ## Required Environment Variables
 
-Declared in `server/global.d.ts`:
+`server/env.ts` checks them with zod when the server starts, so a pod with a missing or malformed variable stops before it takes traffic. Nothing else reads `process.env`.
 
-- `NORG_ENHET_API` – Base URL for NORG office API
-- `PDL_API` – Base URL for PDL API (GraphQL endpoint appended as `/graphql`)
-- `NAIS_TOKEN_ENDPOINT` – NAIS token endpoint for machine-to-machine tokens (provided by NAIS runtime)
-- `NAIS_CLUSTER_NAME` – Cluster name used to construct the PDL token audience (provided by NAIS runtime)
-- `PDL_DEVELOPMENT_TOKEN` – (Optional) Skips NAIS token exchange; used for local development
+- `NORG2_ORIGIN` – NORG's origin; the code adds `/norg2/api/v1/enhet`
+- `PDL_ORIGIN` – PDL's origin; the code adds `/graphql`
+- `PDL_TOKEN_TARGET` – the audience of PDL's tokens, e.g. `api://dev-fss.pdl.pdl-api/.default`
+- `NAIS_TOKEN_ENDPOINT` – Texas, NAIS's token service (injected by NAIS)
+- `PDL_DEVELOPMENT_TOKEN` – (Optional) a token for PDL instead of asking Texas; for local development
+- `PORT` – (Optional) defaults to 3003
+
+The first three come from `.nais/vars-*.yml`. Locally, `.env.development` points them at test hosts that `test/mocks/dev.ts` answers.
 
 ## Tech Stack
 
@@ -103,7 +107,7 @@ Declared in `server/global.d.ts`:
 
 ## Build & Run
 
-- `pnpm run dev` – Run `server/main.ts` with `--watch`, reading `.env` if it exists
+- `pnpm run dev` – Run `server/main.ts` with `--watch`, offline: it reads `.env.development`, and `test/mocks/dev.ts` (loaded with `--import`) answers NORG, PDL and Texas from `test/fixtures.ts`. `MOCKS=false` with real values in the shell goes to the real services
 - `pnpm run start` – Run `server/main.ts`
 - `pnpm run format` – Format with oxfmt
 - `pnpm run lint` – oxfmt check, ESLint, then `tsc --noEmit` over `server/`, `test/` and the config files
@@ -119,8 +123,12 @@ This app runs in **fss** (fagsystemsonen) because it needs direct network access
 
 NAIS app manifests live in `.nais/`:
 
-- `config.dev.yaml` – dev-fss cluster config
-- `config.prod.yaml` – prod-fss cluster config
+- `config.yml` – the app, a Handlebars template that nais deploy renders
+- `vars-dev.yml` – its values for dev-fss
+- `vars-prod.yml` – its values for prod-fss
+- `alerts.yml` – the alerts, prod only
+
+`test/nais.test.ts` checks that each vars file gives the server a valid environment.
 
 Key settings:
 
@@ -132,7 +140,7 @@ Key settings:
 
 ### GitHub Actions Workflows
 
-- **Build and deploy to prod** (`build-deploy-prod.yml`): Reusable workflow (`workflow_call`) shared by the two below. Builds, pushes Docker image, deploys the app and then `.nais/alerts.yaml` to `prod-fss`.
+- **Build and deploy to prod** (`build-deploy-prod.yml`): Reusable workflow (`workflow_call`) shared by the two below. Builds, pushes Docker image, deploys the app and then `.nais/alerts.yml` to `prod-fss`.
 - **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Runs `build-deploy-prod.yml`, then creates a GitHub Release with auto-generated release notes.
 - **Refresh base image** (`base-image-refresh.yml`): Sundays 23:17 Oslo time, or manually from `main`. Runs `build-deploy-prod.yml` so prod gets the newest base image. No release.
 - **Deploy to dev** (`deploy.dev.yml`): Manual trigger only (`workflow_dispatch`).

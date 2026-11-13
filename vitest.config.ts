@@ -1,15 +1,15 @@
 import { defineConfig } from 'vitest/config';
-import { NAIS_TOKEN_ENDPOINT, NORG_ENHET_API, PDL_API } from './test/fixtures.ts';
+import { NAIS_TOKEN_ENDPOINT, NORG2_ORIGIN, PDL_ORIGIN, PDL_TOKEN_TARGET } from './test/fixtures.ts';
 
 export default defineConfig({
 	test: {
-		include: ['server/**/*.test.ts'],
+		include: ['server/**/*.test.ts', 'test/**/*.test.ts'],
 		env: {
-			// The app reads these from process.env when it needs them
-			NORG_ENHET_API,
-			PDL_API,
+			// server/env.ts reads these when the app's modules load; test/app.ts loads fresh ones for every test
+			NORG2_ORIGIN,
+			PDL_ORIGIN,
+			PDL_TOKEN_TARGET,
 			NAIS_TOKEN_ENDPOINT,
-			NAIS_CLUSTER_NAME: 'test-fss',
 		},
 		// The app logs with console.*; show it only for a failing test
 		silent: 'passed-only',

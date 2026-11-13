@@ -15,5 +15,6 @@ jobs:
     permissions: { contents: read, id-token: write }
     with:
       cluster: dev-fss
-      resource: .nais/config.dev.yaml
+      resource: .nais/config.yml
+      vars: .nais/vars-dev.yml
       var: image=${{ needs.build.outputs.image }}

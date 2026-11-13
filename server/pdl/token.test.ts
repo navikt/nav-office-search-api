@@ -2,7 +2,7 @@ import { networkError } from '@itsy/corgi/testing';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { startApp } from '#test/app.ts';
 import { installMockFetch } from '#test/fetch.ts';
-import { NAIS_TOKEN_ENDPOINT, PDL_GRAPHQL_URL, pdlBydelAnswer, texasToken } from '#test/fixtures.ts';
+import { NAIS_TOKEN_ENDPOINT, PDL_GRAPHQL_URL, PDL_TOKEN_TARGET, pdlBydelAnswer, texasToken } from '#test/fixtures.ts';
 
 const http = installMockFetch();
 
@@ -13,7 +13,7 @@ afterEach(() => {
 const pdlAnswers = () => http.post(PDL_GRAPHQL_URL, { json: pdlBydelAnswer(['030101']) });
 
 describe('the token for PDL', () => {
-	test("asks Texas for an Entra ID token for PDL in the pod's cluster", async () => {
+	test('asks Texas for an Entra ID token for PDL_TOKEN_TARGET', async () => {
 		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken('texas-token') });
 		pdlAnswers();
 		const app = await startApp();
@@ -22,7 +22,7 @@ describe('the token for PDL', () => {
 
 		const [call] = http.callsTo(NAIS_TOKEN_ENDPOINT, 'POST');
 		expect(call?.headers.get('content-type')).toBe('application/json');
-		expect(call?.json()).toEqual({ identity_provider: 'entra_id', target: 'api://test-fss.pdl.pdl-api/.default' });
+		expect(call?.json()).toEqual({ identity_provider: 'entra_id', target: PDL_TOKEN_TARGET });
 		expect(http.lastCall?.headers.get('authorization')).toBe('Bearer texas-token');
 	});
 
@@ -81,20 +81,4 @@ describe('the token for PDL', () => {
 		expect(await res.json()).toEqual({ error: 'PDL request failed' });
 		expect(http.callsTo(PDL_GRAPHQL_URL)).toHaveLength(0);
 	});
-
-	test.each(['NAIS_TOKEN_ENDPOINT', 'NAIS_CLUSTER_NAME'])(
-		'answers 502 when %s is not set, and logs why',
-		async (variable) => {
-			vi.stubEnv(variable, undefined);
-			const error = vi.spyOn(console, 'error');
-			const app = await startApp();
-
-			const res = await app.get('/bydel?postnummer=0150');
-
-			expect(res.status).toBe(502);
-			expect(await res.json()).toEqual({ error: 'PDL request failed' });
-			expect(error.mock.calls.flat().map(String).join('\n')).toContain(`${variable} environment variable is not set`);
-			expect(http.calls).toEqual([]);
-		}
-	);
 });
