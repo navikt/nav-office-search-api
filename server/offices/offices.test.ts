@@ -1,8 +1,8 @@
 import { networkError } from '@itsy/corgi/testing';
 import { describe, expect, test } from 'vitest';
-import { startApp, type TestApp } from '../test/app.ts';
-import { installMockFetch } from '../test/fetch.ts';
-import { navkontor, norgEnhet, norgEnhetUrl, norgNavkontorerUrl } from '../test/fixtures.ts';
+import { startApp, type TestApp } from '#test/app.ts';
+import { installMockFetch } from '#test/fetch.ts';
+import { navkontor, norgEnhet, norgEnhetUrl, norgNavkontorerUrl } from '#test/fixtures.ts';
 
 const http = installMockFetch();
 

@@ -20,13 +20,7 @@ Installer avhengigheter:
 pnpm install
 ```
 
-Bygg applikasjonen:
-
-```bash
-pnpm run build
-```
-
-Kjør lokalt:
+Kjør lokalt (Node kjører TypeScript-koden direkte, uten bygg, og leser `.env` hvis den finnes):
 
 ```bash
 pnpm run dev

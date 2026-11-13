@@ -1,18 +1,19 @@
-// Type-checks the source, the tests and the config files (`pnpm lint`). tsconfig.build.json does the build.
+// Type-check only (`pnpm lint`): Node runs the TypeScript in server/ directly, stripping the types
 {
 	"compilerOptions": {
-		"allowJs": true,
-		"allowImportingTsExtensions": true,
-		"forceConsistentCasingInFileNames": true,
-		"isolatedModules": true,
-		"lib": ["esnext", "dom"],
-		"moduleResolution": "nodenext",
+		"target": "es2024",
+		// dom: fetch.ts and pdl/token.ts read fetch's types from it, until PR 11
+		"lib": ["es2024", "dom"],
 		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"types": ["node"],
+		"strict": true,
 		"noEmit": true,
 		"skipLibCheck": true,
-		"strict": true,
-		"target": "es2022",
-		"types": ["node"]
+		"erasableSyntaxOnly": true,
+		"verbatimModuleSyntax": true,
+		"allowImportingTsExtensions": true,
+		"resolveJsonModule": true
 	},
-	"include": ["src/**/*.ts", "test/**/*.ts", "*.config.ts"]
+	"include": ["server/**/*.ts", "test/**/*.ts", "*.config.ts"]
 }
