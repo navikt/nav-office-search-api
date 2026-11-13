@@ -1,4 +1,3 @@
-import { networkError } from '@itsy/corgi/testing';
 import { describe, expect, test } from 'vitest';
 import { startApp } from '#test/app.ts';
 import { installMockFetch } from '#test/fetch.ts';
@@ -10,6 +9,7 @@ import {
 	texasToken,
 	vegadresse,
 } from '#test/fixtures.ts';
+import { expectLookups, expectPdlFailed, expectRejected, pdlFailures } from '#test/pdl.ts';
 
 const http = installMockFetch();
 
@@ -127,12 +127,7 @@ describe('GET /adresse', () => {
 	])('answers 400 %s, without asking PDL', async (_, path, error) => {
 		const app = await startApp();
 
-		const res = await app.get(path);
-
-		expect(res.status).toBe(400);
-		expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8');
-		expect(await res.json()).toEqual({ error });
-		expect(http.calls).toEqual([]);
+		await expectRejected(await app.get(path), error, http.calls);
 	});
 
 	test('accepts 150 characters', async () => {
@@ -142,19 +137,13 @@ describe('GET /adresse', () => {
 		expect((await search('a'.repeat(150))).status).toBe(200);
 	});
 
-	test.each([
-		['answers an HTTP error', { status: 503, json: pdlErrorAnswer('server_error') }],
-		['answers GraphQL errors on HTTP 200', { json: pdlErrorAnswer('bad_request') }],
-		['is unreachable', networkError()],
-	])('answers 502 when PDL %s', async (_, reply) => {
+	test.each(pdlFailures)('answers 502 when PDL %s', async (_, reply) => {
 		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken() });
 		http.post(PDL_GRAPHQL_URL, reply);
 
 		const res = await search('Storgata 31B');
 
-		expect(res.status).toBe(502);
-		expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8');
-		expect(await res.json()).toEqual({ error: 'PDL request failed' });
+		await expectPdlFailed(res);
 	});
 
 	test('counts lookups by result', async () => {
@@ -172,11 +161,6 @@ describe('GET /adresse', () => {
 		await app.get('/adresse');
 		await app.get('/adresse?queryString=!');
 
-		const lookups = (result: string) =>
-			app.metric('nav_office_search_api_lookups_total', { operation: 'adresse', result });
-		expect(await lookups('hits')).toBe(1);
-		expect(await lookups('empty')).toBe(1);
-		expect(await lookups('error')).toBe(1);
-		expect(await lookups('invalid')).toBe(2);
+		await expectLookups(app, 'adresse', [1, 1, 1, 2]);
 	});
 });

@@ -3,6 +3,8 @@ import { startApp } from '#test/app.ts';
 import { installMockFetch } from '#test/fetch.ts';
 import { navkontor, norgEnhet, norgEnhetUrl, norgNavkontorerUrl } from '#test/fixtures.ts';
 
+import { expectLookups } from '#test/pdl.ts';
+
 const http = installMockFetch();
 
 const office = { enhetNr: '0315', navn: 'Nav Grünerløkka' };
@@ -109,8 +111,6 @@ describe('GET /geoid', () => {
 		await app.get('/geoid?id=030199');
 		await app.get('/geoid');
 
-		expect(await app.metric('nav_office_search_api_lookups_total', { operation: 'geoid', result: 'hits' })).toBe(2);
-		expect(await app.metric('nav_office_search_api_lookups_total', { operation: 'geoid', result: 'empty' })).toBe(1);
-		expect(await app.metric('nav_office_search_api_lookups_total', { operation: 'geoid', result: 'invalid' })).toBe(1);
+		await expectLookups(app, 'geoid', [2, 1, 0, 1]);
 	});
 });
