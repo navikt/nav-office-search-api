@@ -16,9 +16,17 @@ export const createReadinessHandler =
 export const createApp = (isReady: () => boolean) => {
     const app = express();
 
-    app.get('/geoid', async (req, res) => geoIdSearchHandler(req, res));
-    app.get('/adresse', async (req, res) => adresseSearchHandler(req, res));
-    app.get('/bydel', async (req, res) => bydelSearchHandler(req, res));
+    // Express 4 doesn't catch a rejected handler, and an unhandled rejection
+    // ends the process. Pass it on to Express, which answers 500.
+    app.get('/geoid', (req, res, next) => {
+        geoIdSearchHandler(req, res).catch(next);
+    });
+    app.get('/adresse', (req, res, next) => {
+        adresseSearchHandler(req, res).catch(next);
+    });
+    app.get('/bydel', (req, res, next) => {
+        bydelSearchHandler(req, res).catch(next);
+    });
 
     app.get('/internal/isAlive', (_req, res) => {
         return res.status(200).send('I am alive!');
