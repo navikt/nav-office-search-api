@@ -12,17 +12,6 @@ jobs:
     # "Run workflow" lets you pick a branch. Skip unless it's main, so a manual
     # run can't put a feature branch in prod.
     if: ${{ github.ref == 'refs/heads/main' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v7
-
-      - name: Build and deploy to prod
-        uses: ./.github/actions/build-and-deploy
-        with:
-          environment: prod
-          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
-          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+    uses: ./.github/workflows/build-deploy-prod.yml
+    permissions: { contents: read, id-token: write }
+    secrets: inherit
