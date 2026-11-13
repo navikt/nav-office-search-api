@@ -19,7 +19,7 @@
 		"@hono/node-server": "2.1.6",
 		"@navikt/navno-logger": "1.2.0",
 		"@prometheus-io/client": "0.16.1",
-		"graphql": "16.14.2",
+		"graphql": "16.15.0",
 		"graphql-request": "7.4.0",
 		"hono": "4.13.17",
 		"node-cache": "5.1.2",
