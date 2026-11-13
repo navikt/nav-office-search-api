@@ -1,9 +1,24 @@
+import { logger, traceRoute } from '@navikt/navno-logger';
 import { describe, expect, test, vi } from 'vitest';
 import { startApp } from '#test/app.ts';
 import { installMockFetch } from '#test/fetch.ts';
 import { navkontor, norgEnhet, norgEnhetUrl, norgNavkontorerUrl } from '#test/fixtures.ts';
 
+vi.mock('@navikt/navno-logger', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@navikt/navno-logger')>()),
+	traceRoute: vi.fn(),
+}));
+
 const http = installMockFetch();
+
+// The app with Nav Grünerløkka loaded for bydel Grünerløkka (030102)
+const startAppWithOffice = async () => {
+	http.get(norgEnhetUrl, { json: [norgEnhet()] });
+	http.get(norgNavkontorerUrl('0315'), { json: [navkontor('030102')] });
+	const app = await startApp();
+	await app.loadOffices();
+	return app;
+};
 
 describe('probes', () => {
 	test('/internal/isAlive answers 200', async () => {
@@ -12,7 +27,8 @@ describe('probes', () => {
 		const res = await app.get('/internal/isAlive');
 
 		expect(res.status).toBe(200);
-		expect(res.headers.get('content-type')).toBe('text/html; charset=utf-8');
+		// Hono leaves a plain 200 to Response, which writes the type without the space
+		expect(res.headers.get('content-type')).toMatch(/^text\/plain; ?charset=UTF-8$/);
 		expect(await res.text()).toBe('I am alive!');
 	});
 
@@ -22,7 +38,7 @@ describe('probes', () => {
 
 		const notReady = await app.get('/internal/isReady');
 		expect(notReady.status).toBe(503);
-		expect(notReady.headers.get('content-type')).toBe('text/html; charset=utf-8');
+		expect(notReady.headers.get('content-type')).toBe('text/plain; charset=UTF-8');
 		expect(await notReady.text()).toBe('I am not ready...');
 
 		ready = true;
@@ -55,30 +71,79 @@ describe('/internal/metrics', () => {
 });
 
 describe('errors', () => {
-	test('an unknown path answers Express 404', async () => {
+	test("an unknown path answers Hono's 404", async () => {
 		const app = await startApp();
 
 		const res = await app.get('/finnes-ikke');
 
 		expect(res.status).toBe(404);
-		expect(res.headers.get('content-type')).toBe('text/html; charset=utf-8');
+		expect(res.headers.get('content-type')).toBe('text/plain; charset=UTF-8');
+		expect(await res.text()).toBe('404 Not Found');
 	});
 
-	test('an error thrown in an async route answers 500, and the app keeps answering', async () => {
-		http.get(norgEnhetUrl, { json: [norgEnhet()] });
-		http.get(norgNavkontorerUrl('0315'), { json: [navkontor('030102')] });
-		const app = await startApp();
-		await app.loadOffices();
+	test('an error thrown in a route answers 500, is logged without the query, and the app keeps answering', async () => {
+		const app = await startAppWithOffice();
+		const error = vi.spyOn(logger, 'error');
 		const lookups = app.metricsRegistry.getSingleMetric('nav_office_search_api_lookups_total');
 		const inc = vi.spyOn(lookups as unknown as { inc: () => void }, 'inc').mockImplementation(() => {
 			throw new Error('Simulated failure');
 		});
 
 		for (const path of ['/geoid?id=030102', '/adresse', '/bydel']) {
-			expect((await app.get(path)).status, path).toBe(500);
+			const res = await app.get(path);
+			expect(res.status, path).toBe(500);
+			expect(await res.json(), path).toEqual({ error: 'Internal server error' });
 		}
 
+		expect(error.mock.calls).toEqual(
+			['/geoid', '/adresse', '/bydel'].map((path) => [
+				'Request failed',
+				{ method: 'GET', path },
+				new Error('Simulated failure'),
+			])
+		);
 		inc.mockRestore();
 		expect((await app.get('/geoid?id=030102')).status).toBe(200);
+	});
+});
+
+describe('tracing', () => {
+	test('names the trace after the route, not the requested path', async () => {
+		const app = await startAppWithOffice();
+
+		await app.get('/geoid/?id=030102');
+		await app.get('/internal/isAlive');
+
+		expect(vi.mocked(traceRoute).mock.calls).toEqual([['/geoid'], ['/internal/isAlive']]);
+	});
+});
+
+// Hono's defaults, where Express answered differently. nav-office-search depends on none of them.
+describe('framework defaults', () => {
+	test('sends no X-Powered-By and no ETag', async () => {
+		const app = await startAppWithOffice();
+
+		const res = await app.get('/geoid?id=030102');
+
+		expect(res.headers.get('x-powered-by')).toBeNull();
+		expect(res.headers.get('etag')).toBeNull();
+	});
+
+	test('answers OPTIONS with 404', async () => {
+		const app = await startAppWithOffice();
+
+		expect((await app.request('/geoid?id=030102', { method: 'OPTIONS' })).status).toBe(404);
+	});
+
+	test('matches paths case-sensitively', async () => {
+		const app = await startAppWithOffice();
+
+		expect((await app.get('/GEOID?id=030102')).status).toBe(404);
+	});
+
+	test('decodes a %-escaped path before matching it', async () => {
+		const app = await startAppWithOffice();
+
+		expect((await app.get('/ge%6Fid?id=030102')).status).toBe(200);
 	});
 });

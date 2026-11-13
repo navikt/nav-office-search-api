@@ -25,7 +25,7 @@ describe('GET /geoid', () => {
 		const res = await app.get('/geoid?id=030102');
 
 		expect(res.status).toBe(200);
-		expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8');
+		expect(res.headers.get('content-type')).toBe('application/json');
 		expect(await res.json()).toEqual(office);
 	});
 
@@ -53,7 +53,7 @@ describe('GET /geoid', () => {
 		const res = await app.get('/geoid?id=030199');
 
 		expect(res.status).toBe(404);
-		expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8');
+		expect(res.headers.get('content-type')).toBe('application/json');
 		expect(await res.json()).toEqual({ message: 'No office info found for geoid 030199' });
 	});
 
@@ -88,8 +88,17 @@ describe('GET /geoid', () => {
 		const res = await app.get(path);
 
 		expect(res.status).toBe(400);
-		expect(res.headers.get('content-type')).toBe('text/html; charset=utf-8');
+		expect(res.headers.get('content-type')).toBe('text/plain; charset=UTF-8');
 		expect(await res.text()).toBe("Invalid request - 'id' parameter is required");
+	});
+
+	test('ignores an id[] parameter next to id', async () => {
+		const app = await startAppWithOffices();
+
+		const res = await app.get('/geoid?id=030102&id[]=0301');
+
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual(office);
 	});
 
 	test.each([

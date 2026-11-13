@@ -19,7 +19,7 @@ describe('GET /bydel', () => {
 		const res = await bydelerFor('0150');
 
 		expect(res.status).toBe(200);
-		expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8');
+		expect(res.headers.get('content-type')).toBe('application/json');
 		expect(await res.json()).toEqual({ bydeler: ['030101', '030104'] });
 	});
 

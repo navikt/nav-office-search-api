@@ -1,5 +1,5 @@
-import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
+import { serve } from '@hono/node-server';
 import { onTestFinished, vi } from 'vitest';
 
 // The real fetch, kept before a test file installs corgi's mock as the global, for requests to the app itself
@@ -17,19 +17,28 @@ export const startApp = async ({ isReady = () => true }: Options = {}) => {
 	const { loadNorgOfficeInfo } = await import('#server/offices/offices.ts');
 	const { metricsRegistry } = await import('#server/metrics.ts');
 
-	const server = createApp(isReady).listen(0, '127.0.0.1');
-	await once(server, 'listening');
-	onTestFinished(
-		() =>
-			new Promise<void>((resolve) => {
-				server.closeAllConnections();
-				server.close(() => resolve());
-			})
-	);
-	const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+	const app = createApp(isReady);
+	const port = await new Promise<number>((resolve) => {
+		const server = serve(
+			{ fetch: app.fetch, port: 0, hostname: '127.0.0.1', overrideGlobalObjects: false },
+			(info: AddressInfo) => resolve(info.port)
+		);
+		onTestFinished(
+			() =>
+				new Promise<void>((done) => {
+					if ('closeAllConnections' in server) {
+						server.closeAllConnections();
+					}
+					server.close(() => done());
+				})
+		);
+	});
+	const origin = `http://127.0.0.1:${port}`;
 
 	// A request the app never answers fails the test instead of hanging it
-	const get = (path: string) => realFetch(`${origin}${path}`, { signal: AbortSignal.timeout(2000) });
+	const request = (path: string, init: RequestInit = {}) =>
+		realFetch(`${origin}${path}`, { ...init, signal: AbortSignal.timeout(2000) });
+	const get = (path: string) => request(path);
 
 	// One sample from /internal/metrics; labels in the order the metric declares them
 	const metric = async (name: string, labels: Record<string, string> = {}) => {
@@ -42,7 +51,7 @@ export const startApp = async ({ isReady = () => true }: Options = {}) => {
 		return line === undefined ? undefined : Number(line.slice(series.length));
 	};
 
-	return { get, metric, loadOffices: loadNorgOfficeInfo, metricsRegistry };
+	return { get, request, metric, loadOffices: loadNorgOfficeInfo, metricsRegistry };
 };
 
 export type TestApp = Awaited<ReturnType<typeof startApp>>;

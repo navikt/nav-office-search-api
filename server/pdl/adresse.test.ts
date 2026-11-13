@@ -34,7 +34,7 @@ describe('GET /adresse', () => {
 		const res = await search('Storgata 31');
 
 		expect(res.status).toBe(200);
-		expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8');
+		expect(res.headers.get('content-type')).toBe('application/json');
 		expect(await res.json()).toEqual({ totalHits: 2, adresser: [storgata31B, storgata31] });
 	});
 
@@ -128,6 +128,16 @@ describe('GET /adresse', () => {
 		const app = await startApp();
 
 		await expectRejected(await app.get(path), error, http.calls);
+	});
+
+	test('reads a + in the query as a space, as a form-encoded query means it', async () => {
+		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken() });
+		http.post(PDL_GRAPHQL_URL, { json: pdlAdresseAnswer([]) });
+		const app = await startApp();
+
+		expect((await app.get('/adresse?queryString=Storgata+1')).status).toBe(200);
+
+		expect(sentToPdl()[0]?.variables).toMatchObject({ criteria: [fritekst('Storgata'), husnummer('1')] });
 	});
 
 	test('accepts 150 characters', async () => {
