@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
-import { startApp } from '../../test/app.ts';
-import { installMockFetch } from '../../test/fetch.ts';
+import { startApp } from '#test/app.ts';
+import { installMockFetch } from '#test/fetch.ts';
 import {
 	NAIS_TOKEN_ENDPOINT,
 	PDL_GRAPHQL_URL,
@@ -8,7 +8,7 @@ import {
 	pdlErrorAnswer,
 	texasToken,
 	vegadresse,
-} from '../../test/fixtures.ts';
+} from '#test/fixtures.ts';
 
 const http = installMockFetch();
 

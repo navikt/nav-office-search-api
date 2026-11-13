@@ -1,6 +1,6 @@
 import { ClientError, request } from 'graphql-request';
-import { getAccessToken, invalidateAccessToken } from './auth.js';
-import { ErrorResponse } from './fetch.js';
+import { getAccessToken, invalidateAccessToken } from './token.ts';
+import type { ErrorResponse } from '../fetch.ts';
 
 export const getPdlGraphQLUrl = (): string => {
 	const { PDL_API } = process.env;

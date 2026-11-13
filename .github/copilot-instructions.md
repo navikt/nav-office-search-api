@@ -8,6 +8,28 @@ Runs on port 3003. Deployed as a Docker container.
 
 ## Architecture
 
+### Layout
+
+```
+server/
+  main.ts          starts the server: first NORG load, daily refresh, shutdown
+  app.ts           the Express app: routes and probes
+  metrics.ts       business metrics
+  fetch.ts         fetchJson (NORG) and the ErrorResponse type
+  global.d.ts      types for process.env
+  offices/
+    offices.ts     the geoId → office map, loaded from NORG
+    route.ts       GET /geoid
+  pdl/
+    adresse.ts     GET /adresse
+    bydel.ts       GET /bydel
+    client.ts      PDL GraphQL requests, the retry after a 401
+    token.ts       the token for PDL from the NAIS token endpoint
+    types.ts       PDL's answers and ours
+  *.test.ts        next to the code they test
+test/              test helpers: the app on a free port, the fetch mock, fixtures
+```
+
 ### Data Flow
 
 1. **Startup**: `loadNorgOfficeInfo()` fetches all active local offices from NORG, then for each office fetches its geographical areas. This builds an in-memory `geoIdToEnhetMap` (geoId → `{ enhetNr, navn }`).
@@ -27,8 +49,8 @@ Runs on port 3003. Deployed as a Docker container.
 
 ### Caching Strategy
 
-- **geoIdToEnhetMap** (office-data.ts): Module-level variable holding the full office→geoId mapping. Rebuilt entirely on each refresh. On partial fetch failure, previous data for that office is preserved.
-- **PDL access token** (auth.ts): `node-cache` with TTL derived from token expiry (minus 60s buffer). Invalidated and refreshed automatically on 401 from PDL.
+- **geoIdToEnhetMap** (`server/offices/offices.ts`): Module-level variable holding the full office→geoId mapping. Rebuilt entirely on each refresh. On partial fetch failure, previous data for that office is preserved.
+- **PDL access token** (`server/pdl/token.ts`): `node-cache` with TTL derived from token expiry (minus 60s buffer). Invalidated and refreshed automatically on 401 from PDL.
 
 ### External Dependencies (APIs)
 
@@ -37,7 +59,7 @@ Runs on port 3003. Deployed as a Docker container.
 
 ## Metrics
 
-`src/metrics.ts` defines business metrics with `@prometheus-io/client` (the official successor of `prom-client`) on a dedicated registry, exposed at `/internal/metrics` and scraped via `spec.prometheus` in the NAIS manifests. HTTP latency/status is covered by OTel auto-instrumentation and ingress metrics, so app metrics focus on business outcomes:
+`server/metrics.ts` defines business metrics with `@prometheus-io/client` (the official successor of `prom-client`) on a dedicated registry, exposed at `/internal/metrics` and scraped via `spec.prometheus` in the NAIS manifests. HTTP latency/status is covered by OTel auto-instrumentation and ingress metrics, so app metrics focus on business outcomes:
 
 | Metric                                                      | Type    | Labels                                                                        |
 | ----------------------------------------------------------- | ------- | ----------------------------------------------------------------------------- |
@@ -62,7 +84,7 @@ Don't use `{{ }}` in the alert annotations: nais deploy templates every resource
 
 ## Required Environment Variables
 
-Declared in `src/global.d.ts`:
+Declared in `server/global.d.ts`:
 
 - `NORG_ENHET_API` – Base URL for NORG office API
 - `PDL_API` – Base URL for PDL API (GraphQL endpoint appended as `/graphql`)
@@ -72,7 +94,7 @@ Declared in `src/global.d.ts`:
 
 ## Tech Stack
 
-- **Runtime**: Node.js with ES modules (`"type": "module"`)
+- **Runtime**: Node.js with ES modules (`"type": "module"`). Node runs the TypeScript directly and strips the types; there is no build step
 - **Language**: TypeScript (strict mode, nodenext module resolution)
 - **Framework**: Express
 - **Package manager**: pnpm
@@ -81,12 +103,11 @@ Declared in `src/global.d.ts`:
 
 ## Build & Run
 
-- `pnpm run build` – Compiles `src/` to `distSrc/` (`tsconfig.build.json`, without the tests)
-- `pnpm run dev` – Build + run with dotenv
-- `pnpm run start` – Run compiled JS
+- `pnpm run dev` – Run `server/main.ts` with `--watch`, reading `.env` if it exists
+- `pnpm run start` – Run `server/main.ts`
 - `pnpm run format` – Format with oxfmt
-- `pnpm run lint` – oxfmt check, ESLint, then `tsc --noEmit` over `src/`, `test/` and the config files
-- `pnpm run test` – Vitest on the TypeScript source, no build needed. Each test starts a fresh copy of the app on a free port (`test/app.ts`) and asks it over HTTP; NORG, PDL and Texas are answered by corgi's `mockFetch` (`test/fetch.ts`, `test/fixtures.ts`). A test file sits next to the code it tests. Today's wrong behaviour is pinned in tests named `(bug)`
+- `pnpm run lint` – oxfmt check, ESLint, then `tsc --noEmit` over `server/`, `test/` and the config files
+- `pnpm run test` – Vitest on the TypeScript source. Each test starts a fresh copy of the app on a free port (`test/app.ts`) and asks it over HTTP; NORG, PDL and Texas are answered by corgi's `mockFetch` (`test/fetch.ts`, `test/fixtures.ts`). A test file sits next to the code it tests. Today's wrong behaviour is pinned in tests named `(bug)`
 
 ## Deployment
 
@@ -115,12 +136,12 @@ Key settings:
 - **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Runs `build-deploy-prod.yml`, then creates a GitHub Release with auto-generated release notes.
 - **Refresh base image** (`base-image-refresh.yml`): Sundays 23:17 Oslo time, or manually from `main`. Runs `build-deploy-prod.yml` so prod gets the newest base image. No release.
 - **Deploy to dev** (`deploy.dev.yml`): Manual trigger only (`workflow_dispatch`).
-- **Test pull request** (`pr-test.yml`): Runs lint, build, and tests for pull requests.
-- All workflows use the reusable workflows in `navikt/navno-ci` (`node-build.yml`, `nais-deploy.yml`, `release.yml`, `dependabot-lockfile.yml`), which are built on `navikt/navno-actions`. The build runs: pnpm install → build → lint → test → reinstall production dependencies → Docker build+push; then `nais-deploy.yml` deploys. Node version comes from `engines.node` in package.json.
+- **Test pull request** (`pr-test.yml`): Runs lint and tests for pull requests.
+- All workflows use the reusable workflows in `navikt/navno-ci` (`node-build.yml`, `nais-deploy.yml`, `release.yml`, `dependabot-lockfile.yml`), which are built on `navikt/navno-actions`. The build runs: pnpm install → lint → test (there is no `build` script, so that step is skipped) → reinstall production dependencies → Docker build+push of `package.json`, `node_modules` and `server/` (`.dockerignore` keeps the tests out); then `nais-deploy.yml` deploys. Node version comes from `engines.node` in package.json.
 
 ## Conventions
 
-- All local imports use `.js` extension (required for nodenext module resolution)
+- Imports name the `.ts` file, and type-only imports use `import type`. `erasableSyntaxOnly` and `verbatimModuleSyntax` keep the code to TypeScript that Node can strip. Imports across top-level folders use `#server/*` and `#test/*` (package.json `imports`)
 - Error responses use the `ErrorResponse` type from `fetch.ts` with `{ error: true, statusCode, message }`
 - The `fetchJson` helper handles query string building, JSON parsing, and error wrapping (used by NORG calls)
 - PDL calls use `graphql-request` directly with typed responses

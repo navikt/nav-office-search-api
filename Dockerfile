@@ -4,10 +4,10 @@ ENV NODE_ENV=production
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json ./
 COPY node_modules ./node_modules
-COPY distSrc ./distSrc
+COPY server ./server
 
 EXPOSE 3003
 ENTRYPOINT ["node"]
-CMD ["distSrc/server.js"]
+CMD ["server/main.ts"]

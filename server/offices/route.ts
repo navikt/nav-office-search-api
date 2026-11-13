@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { getOfficeData } from '../norg-office-data.js';
-import { recordLookup } from '../metrics.js';
+import type { Request, Response } from 'express';
+import { getOfficeData } from './offices.ts';
+import { recordLookup } from '../metrics.ts';
 
 export const geoIdSearchHandler = async (req: Request, res: Response) => {
 	const { id } = req.query;

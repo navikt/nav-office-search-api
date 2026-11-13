@@ -1,6 +1,6 @@
 import schedule from 'node-schedule';
-import { createApp } from './app.js';
-import { loadNorgOfficeInfo } from './norg-office-data.js';
+import { createApp } from './app.ts';
+import { loadNorgOfficeInfo } from './offices/offices.ts';
 
 const appPort = 3003;
 

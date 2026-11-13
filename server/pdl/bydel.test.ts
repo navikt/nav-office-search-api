@@ -1,14 +1,8 @@
 import { networkError } from '@itsy/corgi/testing';
 import { describe, expect, test } from 'vitest';
-import { startApp } from '../../test/app.ts';
-import { installMockFetch } from '../../test/fetch.ts';
-import {
-	NAIS_TOKEN_ENDPOINT,
-	PDL_GRAPHQL_URL,
-	pdlBydelAnswer,
-	pdlErrorAnswer,
-	texasToken,
-} from '../../test/fixtures.ts';
+import { startApp } from '#test/app.ts';
+import { installMockFetch } from '#test/fetch.ts';
+import { NAIS_TOKEN_ENDPOINT, PDL_GRAPHQL_URL, pdlBydelAnswer, pdlErrorAnswer, texasToken } from '#test/fixtures.ts';
 
 const http = installMockFetch();
 

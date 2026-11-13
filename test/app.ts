@@ -13,9 +13,9 @@ type Options = {
 // state, so every test gets new modules.
 export const startApp = async ({ isReady = () => true }: Options = {}) => {
 	vi.resetModules();
-	const { createApp } = await import('../src/app.ts');
-	const { loadNorgOfficeInfo } = await import('../src/norg-office-data.ts');
-	const { metricsRegistry } = await import('../src/metrics.ts');
+	const { createApp } = await import('#server/app.ts');
+	const { loadNorgOfficeInfo } = await import('#server/offices/offices.ts');
+	const { metricsRegistry } = await import('#server/metrics.ts');
 
 	const server = createApp(isReady).listen(0, '127.0.0.1');
 	await once(server, 'listening');

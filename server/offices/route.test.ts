@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { startApp } from '../../test/app.ts';
-import { installMockFetch } from '../../test/fetch.ts';
-import { navkontor, norgEnhet, norgEnhetUrl, norgNavkontorerUrl } from '../../test/fixtures.ts';
+import { startApp } from '#test/app.ts';
+import { installMockFetch } from '#test/fetch.ts';
+import { navkontor, norgEnhet, norgEnhetUrl, norgNavkontorerUrl } from '#test/fixtures.ts';
 
 const http = installMockFetch();
 

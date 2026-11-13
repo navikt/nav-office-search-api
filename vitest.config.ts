@@ -3,7 +3,7 @@ import { NAIS_TOKEN_ENDPOINT, NORG_ENHET_API, PDL_API } from './test/fixtures.ts
 
 export default defineConfig({
 	test: {
-		include: ['src/**/*.test.ts'],
+		include: ['server/**/*.test.ts'],
 		env: {
 			// The app reads these from process.env when it needs them
 			NORG_ENHET_API,

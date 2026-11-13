@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
-import { ErrorResponse } from '../helpers/fetch.js';
+import type { Request, Response } from 'express';
+import type { ErrorResponse } from '../fetch.ts';
 import { gql } from 'graphql-request';
-import { BydelerResponse, PdlSokBydelResponse } from '../types/types.js';
-import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
-import { recordLookup } from '../metrics.js';
+import type { BydelerResponse, PdlSokBydelResponse } from './types.ts';
+import { withPdlTokenRetry, pdlRequest } from './client.ts';
+import { recordLookup } from '../metrics.ts';
 
 export const sanitizePostnummer = (postnummer: string): string | null => {
 	const sanitized = postnummer.trim();

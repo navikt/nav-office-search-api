@@ -1,5 +1,5 @@
-import { fetchJson, OkResponse } from './helpers/fetch.js';
-import { recordNorgRefreshFailure, recordNorgRefreshSuccess } from './metrics.js';
+import { fetchJson, type OkResponse } from '../fetch.ts';
+import { recordNorgRefreshFailure, recordNorgRefreshSuccess } from '../metrics.ts';
 
 const norgEnhetApi = process.env.NORG_ENHET_API;
 const norgNavkontorerApi = `${process.env.NORG_ENHET_API}/navkontorer`;

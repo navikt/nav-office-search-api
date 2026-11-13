@@ -1,8 +1,8 @@
-import express, { Request, Response } from 'express';
-import { adresseSearchHandler } from './handlers/adresse-search-handler.js';
-import { bydelSearchHandler } from './handlers/bydel-search-handler.js';
-import { geoIdSearchHandler } from './handlers/geoid-search-handler.js';
-import { metricsRegistry } from './metrics.js';
+import express, { type Request, type Response } from 'express';
+import { adresseSearchHandler } from './pdl/adresse.ts';
+import { bydelSearchHandler } from './pdl/bydel.ts';
+import { geoIdSearchHandler } from './offices/route.ts';
+import { metricsRegistry } from './metrics.ts';
 
 export const createReadinessHandler = (isReady: () => boolean) => (_req: Request, res: Response) => {
 	if (!isReady()) {

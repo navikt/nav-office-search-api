@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
-import { ErrorResponse } from '../helpers/fetch.js';
+import type { Request, Response } from 'express';
+import type { ErrorResponse } from '../fetch.ts';
 import { gql } from 'graphql-request';
-import { AdresseResponse, PdlSokAdresseResponse } from '../types/types.js';
-import { withPdlTokenRetry, pdlRequest } from '../helpers/pdl-request.js';
-import { recordLookup } from '../metrics.js';
+import type { AdresseResponse, PdlSokAdresseResponse } from './types.ts';
+import { withPdlTokenRetry, pdlRequest } from './client.ts';
+import { recordLookup } from '../metrics.ts';
 
 const queryError = (statusCode: number, message: string): ErrorResponse => ({
 	error: true,
