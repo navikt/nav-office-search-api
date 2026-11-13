@@ -5,13 +5,12 @@
 	"type": "module",
 	"module": "es",
 	"scripts": {
-		"build": "rm -fr distSrc && tsc",
-		"dev": "tsc && (tsc -w --preserveWatchOutput &) && node --watch-path=distSrc -r dotenv/config distSrc/server.js",
+		"build": "rm -fr distSrc && tsc -p tsconfig.build.json",
+		"dev": "tsc -p tsconfig.build.json && (tsc -p tsconfig.build.json -w --preserveWatchOutput &) && node --watch-path=distSrc -r dotenv/config distSrc/server.js",
 		"format": "oxfmt",
-		"lint": "oxfmt --check && eslint src/",
+		"lint": "oxfmt --check && eslint . && tsc --noEmit",
 		"start": "node distSrc/server.js",
-		"test": "pnpm run build && pnpm run test:run",
-		"test:run": "node --test tests/*.test.mjs",
+		"test": "vitest run",
 		"prepare": "husky || true"
 	},
 	"dependencies": {
@@ -24,6 +23,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "10.0.1",
+		"@itsy/corgi": "1.4.1",
 		"@types/express": "4.17.21",
 		"@types/node": "26.6.5",
 		"@types/node-schedule": "2.1.8",
@@ -32,7 +32,8 @@
 		"husky": "9.1.7",
 		"oxfmt": "0.78.0",
 		"typescript": "6.0.3",
-		"typescript-eslint": "8.72.1"
+		"typescript-eslint": "8.72.1",
+		"vitest": "5.1.0"
 	},
 	"devEngines": {
 		"runtime": {

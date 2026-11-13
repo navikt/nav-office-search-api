@@ -1,17 +1,18 @@
+// Type-checks the source, the tests and the config files (`pnpm lint`). tsconfig.build.json does the build.
 {
 	"compilerOptions": {
 		"allowJs": true,
-		"rootDir": "src",
+		"allowImportingTsExtensions": true,
 		"forceConsistentCasingInFileNames": true,
 		"isolatedModules": true,
 		"lib": ["esnext", "dom"],
 		"moduleResolution": "nodenext",
 		"module": "nodenext",
-		"outDir": "./distSrc",
+		"noEmit": true,
 		"skipLibCheck": true,
 		"strict": true,
 		"target": "es2022",
 		"types": ["node"]
 	},
-	"include": ["src/**/*.ts"]
+	"include": ["src/**/*.ts", "test/**/*.ts", "*.config.ts"]
 }

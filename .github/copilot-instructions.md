@@ -81,12 +81,12 @@ Declared in `src/global.d.ts`:
 
 ## Build & Run
 
-- `pnpm run build` – Compiles TS to `distSrc/`
+- `pnpm run build` – Compiles `src/` to `distSrc/` (`tsconfig.build.json`, without the tests)
 - `pnpm run dev` – Build + run with dotenv
 - `pnpm run start` – Run compiled JS
 - `pnpm run format` – Format with oxfmt
-- `pnpm run lint` – oxfmt check, then ESLint
-- `pnpm run test` – Build and run the Node.js test suite
+- `pnpm run lint` – oxfmt check, ESLint, then `tsc --noEmit` over `src/`, `test/` and the config files
+- `pnpm run test` – Vitest on the TypeScript source, no build needed. Each test starts a fresh copy of the app on a free port (`test/app.ts`) and asks it over HTTP; NORG, PDL and Texas are answered by corgi's `mockFetch` (`test/fetch.ts`, `test/fixtures.ts`). A test file sits next to the code it tests. Today's wrong behaviour is pinned in tests named `(bug)`
 
 ## Deployment
 
