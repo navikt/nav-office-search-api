@@ -110,7 +110,9 @@ Key settings:
 
 ### GitHub Actions Workflows
 
-- **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Builds, pushes Docker image, deploys to `prod-fss`, then creates a GitHub Release with auto-generated release notes.
+- **Build and deploy to prod** (`build-deploy-prod.yml`): Reusable workflow (`workflow_call`) shared by the two below. Builds, pushes Docker image, deploys the app and then `.nais/alerts.yaml` to `prod-fss`.
+- **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Runs `build-deploy-prod.yml`, then creates a GitHub Release with auto-generated release notes.
+- **Refresh base image** (`base-image-refresh.yml`): Sundays 23:17 Oslo time, or manually from `main`. Runs `build-deploy-prod.yml` so prod gets the newest base image. No release.
 - **Deploy to dev** (`deploy.dev.yml`): Manual trigger only (`workflow_dispatch`).
 - **Test pull request** (`pr-test.yml`): Runs lint, build, and tests for pull requests.
 - All workflows use the reusable workflows in `navikt/navno-ci` (`node-build.yml`, `nais-deploy.yml`, `release.yml`, `dependabot-lockfile.yml`), which are built on `navikt/navno-actions`. The build runs: pnpm install → build → lint → test → reinstall production dependencies → Docker build+push; then `nais-deploy.yml` deploys. Node version comes from `engines.node` in package.json.
