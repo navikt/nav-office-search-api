@@ -1,3 +1,4 @@
+import { serve } from '@hono/node-server';
 import { logger } from '@navikt/navno-logger';
 import schedule from 'node-schedule';
 import { createApp } from './app.ts';
@@ -15,7 +16,7 @@ const refreshOfficeData = async () => {
 	}
 };
 
-const server = app.listen(appPort, () => {
+const server = serve({ fetch: app.fetch, port: appPort, overrideGlobalObjects: false }, () => {
 	void refreshOfficeData();
 	schedule.scheduleJob({ hour: 5, minute: 0, second: 0 }, refreshOfficeData);
 

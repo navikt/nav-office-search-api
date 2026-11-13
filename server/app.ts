@@ -1,47 +1,30 @@
-import { logger } from '@navikt/navno-logger';
-import express, { type Request, type Response } from 'express';
-import { adresseSearchHandler } from './pdl/adresse.ts';
-import { bydelSearchHandler } from './pdl/bydel.ts';
-import { geoIdSearchHandler } from './offices/route.ts';
-import { metricsRegistry } from './metrics.ts';
-
-export const createReadinessHandler = (isReady: () => boolean) => (_req: Request, res: Response) => {
-	if (!isReady()) {
-		return res.status(503).send('I am not ready...');
-	}
-
-	return res.status(200).send('I am ready!');
-};
+import { logger, traceRoute } from '@navikt/navno-logger';
+import { Hono } from 'hono';
+import { routePath } from 'hono/route';
+import { internal } from './internal.ts';
+import { geoid } from './offices/route.ts';
+import { adresse } from './pdl/adresse.ts';
+import { bydel } from './pdl/bydel.ts';
 
 export const createApp = (isReady: () => boolean) => {
-	const app = express();
+	// strict: false matches /geoid/ as well as /geoid. Only the root app honours it.
+	const app = new Hono({ strict: false });
 
-	// Express 4 doesn't catch a rejected handler, and an unhandled rejection
-	// ends the process. Pass it on to Express, which answers 500.
-	app.get('/geoid', (req, res, next) => {
-		geoIdSearchHandler(req, res).catch(next);
-	});
-	app.get('/adresse', (req, res, next) => {
-		adresseSearchHandler(req, res).catch(next);
-	});
-	app.get('/bydel', (req, res, next) => {
-		bydelSearchHandler(req, res).catch(next);
+	// First, so NAIS's OpenTelemetry names every request's trace after its route
+	app.use(async (c, next) => {
+		await next();
+		traceRoute(routePath(c));
 	});
 
-	app.get('/internal/isAlive', (_req, res) => {
-		return res.status(200).send('I am alive!');
-	});
+	app.route('/geoid', geoid);
+	app.route('/adresse', adresse);
+	app.route('/bydel', bydel);
+	app.route('/internal', internal(isReady));
 
-	app.get('/internal/isReady', createReadinessHandler(isReady));
-
-	app.get('/internal/metrics', async (_req, res) => {
-		try {
-			res.set('Content-Type', metricsRegistry.contentType);
-			return res.send(await metricsRegistry.metrics());
-		} catch (e) {
-			logger.error('Failed to collect metrics', e);
-			return res.status(500).send('Failed to collect metrics');
-		}
+	// Logs the path, not the query, which holds what was searched for
+	app.onError((err, c) => {
+		logger.error('Request failed', { method: c.req.method, path: c.req.path }, err);
+		return c.json({ error: 'Internal server error' }, 500);
 	});
 
 	return app;

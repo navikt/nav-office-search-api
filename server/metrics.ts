@@ -1,4 +1,5 @@
 import { Counter, Gauge, Registry } from '@prometheus-io/client';
+import { createMiddleware } from 'hono/factory';
 
 // Dedicated registry (not the global default) so only our business metrics
 // are exposed, and tests can inspect/reset it in isolation.
@@ -29,9 +30,17 @@ for (const operation of lookupOperations) {
 	}
 }
 
-export const recordLookup = (operation: LookupOperation, result: LookupResult) => {
-	lookupsCounter.inc({ operation, result });
-};
+// What a route found, for countLookup. A route sets it with c.set('lookupResult', ...) when it answers 200 or 404.
+export type LookupEnv = { Variables: { lookupResult?: 'hits' | 'empty' } };
+
+// Counts the lookup once the route has answered. What the route set wins; without it, the status decides.
+export const countLookup = (operation: LookupOperation) =>
+	createMiddleware<LookupEnv>(async (c, next) => {
+		await next();
+		const { status } = c.res;
+		const result = c.get('lookupResult') ?? (status >= 500 ? 'error' : status >= 400 ? 'invalid' : 'hits');
+		lookupsCounter.inc({ operation, result });
+	});
 
 const norgRefreshCounter = new Counter({
 	name: 'nav_office_search_api_norg_refresh_total',

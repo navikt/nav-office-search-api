@@ -1,24 +1,23 @@
-import type { Request, Response } from 'express';
+import { Hono } from 'hono';
+import { countLookup, type LookupEnv } from '../metrics.ts';
 import { getOfficeData } from './offices.ts';
-import { recordLookup } from '../metrics.ts';
 
-export const geoIdSearchHandler = async (req: Request, res: Response) => {
-	const { id } = req.query;
+export const geoid = new Hono<LookupEnv>().get('/', countLookup('geoid'), (c) => {
+	// A repeated id counts as a missing one
+	const ids = c.req.queries('id');
+	const id = ids?.length === 1 ? ids[0] : undefined;
 
-	if (typeof id !== 'string') {
-		recordLookup('geoid', 'invalid');
-		return res.status(400).send("Invalid request - 'id' parameter is required");
+	if (id === undefined) {
+		return c.text("Invalid request - 'id' parameter is required", 400);
 	}
 
 	const officeInfo = getOfficeData(id);
 
 	if (!officeInfo) {
-		recordLookup('geoid', 'empty');
-		return res.status(404).send({
-			message: `No office info found for geoid ${id}`,
-		});
+		c.set('lookupResult', 'empty');
+		return c.json({ message: `No office info found for geoid ${id}` }, 404);
 	}
 
-	recordLookup('geoid', 'hits');
-	return res.status(200).send(officeInfo);
-};
+	c.set('lookupResult', 'hits');
+	return c.json(officeInfo);
+});

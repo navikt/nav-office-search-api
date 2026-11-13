@@ -13,7 +13,7 @@ export const pdlFailures = [
 // A rejected request: JSON error body, and the mocked fetch never called
 export const expectRejected = async (res: Response, error: string, calls: readonly unknown[]) => {
 	expect(res.status).toBe(400);
-	expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8');
+	expect(res.headers.get('content-type')).toBe('application/json');
 	expect(await res.json()).toEqual({ error });
 	expect(calls).toEqual([]);
 };
@@ -31,6 +31,6 @@ export const expectLookups = async (app: TestApp, operation: string, expected: [
 // The 502 PDL failures answer
 export const expectPdlFailed = async (res: Response) => {
 	expect(res.status).toBe(502);
-	expect(res.headers.get('content-type')).toBe('application/json; charset=utf-8');
+	expect(res.headers.get('content-type')).toBe('application/json');
 	expect(await res.json()).toEqual({ error: 'PDL request failed' });
 };

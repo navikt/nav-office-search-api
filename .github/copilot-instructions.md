@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Express API (Node.js, TypeScript) that provides office lookup endpoints for a frontend app. It maps geographical IDs and addresses to NAV office information by aggregating data from two external services: NORG (office registry) and PDL (address lookup via GraphQL).
+Hono API (Node.js, TypeScript) that provides office lookup endpoints for a frontend app. It maps geographical IDs and addresses to NAV office information by aggregating data from two external services: NORG (office registry) and PDL (address lookup via GraphQL).
 
 Runs on port 3003. Deployed as a Docker container.
 
@@ -13,9 +13,10 @@ Runs on port 3003. Deployed as a Docker container.
 ```
 server/
   main.ts          starts the server: first NORG load, daily refresh, shutdown
-  app.ts           the Express app: routes and probes
+  app.ts           the Hono app: mounts the routes, names traces, answers a thrown error with 500
+  internal.ts      /internal/isAlive, /internal/isReady, /internal/metrics
   env.ts           the environment, checked with zod at startup
-  metrics.ts       business metrics
+  metrics.ts       business metrics, and countLookup, the middleware that counts a route's lookups
   fetch.ts         fetchJson (NORG) and the ErrorResponse type
   offices/
     offices.ts     the geoId → office map, loaded from NORG
@@ -47,6 +48,8 @@ test/              test helpers: the app on a free port, the fetch mock, fixture
 | `GET /internal/isAlive`            | Liveness probe                                            |
 | `GET /internal/isReady`            | Readiness probe (503 until initial load attempt finishes) |
 | `GET /internal/metrics`            | Prometheus metrics (scraped by NAIS)                      |
+
+Each route module exports its own `Hono` app, which `server/app.ts` mounts with `app.route()`. A route counts its lookup with the `countLookup(operation)` middleware: it sets `c.set('lookupResult', 'hits' | 'empty')` when it answers 200 or 404, and without that a 5xx counts as `error` and a 4xx as `invalid`. Query parameters are read with `c.req.queries()`, so a repeated one counts as missing. Only the root app's `strict: false` makes a trailing slash match, so tests always go through the root app. Paths are case-sensitive. A thrown error reaches `app.onError`, which logs the method and path (never the query) and answers 500.
 
 ### Caching Strategy
 
@@ -100,7 +103,7 @@ The first three come from `.nais/vars-*.yml`. Locally, `.env.development` points
 
 - **Runtime**: Node.js with ES modules (`"type": "module"`). Node runs the TypeScript directly and strips the types; there is no build step
 - **Language**: TypeScript (strict mode, nodenext module resolution)
-- **Framework**: Express
+- **Framework**: Hono on `@hono/node-server`
 - **Package manager**: pnpm
 - **Linting and formatting**: ESLint with typescript-eslint; oxfmt (`oxfmt.config.ts`)
 - **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron), `@prometheus-io/client` (metrics), `@navikt/navno-logger` (logging)

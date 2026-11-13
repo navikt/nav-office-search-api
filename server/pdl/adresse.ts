@@ -1,10 +1,10 @@
-import { logger } from '@navikt/navno-logger';
-import type { Request, Response } from 'express';
-import type { ErrorResponse } from '../fetch.ts';
 import { gql } from 'graphql-request';
+import { Hono } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import type { ErrorResponse } from '../fetch.ts';
+import { countLookup, type LookupEnv } from '../metrics.ts';
 import type { AdresseResponse, PdlSokAdresseResponse } from './types.ts';
 import { withPdlTokenRetry, pdlRequest } from './client.ts';
-import { recordLookup } from '../metrics.ts';
 
 const queryError = (statusCode: number, message: string): ErrorResponse => ({
 	error: true,
@@ -117,33 +117,23 @@ const fetchPdlAdresseSok = async (query: string): Promise<PdlSokAdresseResponse 
 	return withPdlTokenRetry((token) => pdlRequest<PdlSokAdresseResponse>(token, queryDoc, queryVariables));
 };
 
-export const adresseSearchHandler = async (req: Request, res: Response) => {
-	const { queryString } = req.query;
+export const adresse = new Hono<LookupEnv>().get('/', countLookup('adresse'), async (c) => {
+	// A repeated queryString counts as a missing one
+	const values = c.req.queries('queryString');
+	const queryString = values?.length === 1 ? values[0] : undefined;
 
-	if (typeof queryString !== 'string' || !queryString.trim()) {
-		recordLookup('adresse', 'invalid');
-		return res.status(400).send({
-			error: 'Query string is required and must be a non-empty string',
-		});
+	if (queryString === undefined || !queryString.trim()) {
+		return c.json({ error: 'Query string is required and must be a non-empty string' }, 400);
 	}
 
-	try {
-		const response = await fetchPdlAdresseSok(queryString);
+	const response = await fetchPdlAdresseSok(queryString);
 
-		if ('error' in response) {
-			recordLookup('adresse', response.statusCode < 500 ? 'invalid' : 'error');
-			return res.status(response.statusCode).send({ error: response.message });
-		}
-
-		const adresseResponse = toAdresseResponse(response);
-		recordLookup('adresse', adresseResponse.adresser.length > 0 ? 'hits' : 'empty');
-
-		return res.status(200).send(adresseResponse);
-	} catch (e) {
-		logger.error('Unexpected error in adresse search handler', e);
-		recordLookup('adresse', 'error');
-		return res.status(500).send({
-			error: 'Internal server error',
-		});
+	if ('error' in response) {
+		return c.json({ error: response.message }, response.statusCode as ContentfulStatusCode);
 	}
-};
+
+	const adresseResponse = toAdresseResponse(response);
+	c.set('lookupResult', adresseResponse.adresser.length > 0 ? 'hits' : 'empty');
+
+	return c.json(adresseResponse);
+});

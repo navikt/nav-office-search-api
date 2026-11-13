@@ -1,4 +1,4 @@
-Nodejs/Express-app for lookup av NAV-kontor informasjon fra FSS-tjenester (tps/norg2)
+Nodejs/Hono-app for lookup av NAV-kontor informasjon fra FSS-tjenester (tps/norg2)
 
 ## Utvikling
 

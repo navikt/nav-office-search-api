@@ -1,10 +1,10 @@
-import { logger } from '@navikt/navno-logger';
-import type { Request, Response } from 'express';
-import type { ErrorResponse } from '../fetch.ts';
 import { gql } from 'graphql-request';
+import { Hono } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+import type { ErrorResponse } from '../fetch.ts';
+import { countLookup, type LookupEnv } from '../metrics.ts';
 import type { BydelerResponse, PdlSokBydelResponse } from './types.ts';
 import { withPdlTokenRetry, pdlRequest } from './client.ts';
-import { recordLookup } from '../metrics.ts';
 
 export const sanitizePostnummer = (postnummer: string): string | null => {
 	const sanitized = postnummer.trim();
@@ -56,38 +56,29 @@ const fetchPdlBydelSok = async (postnummer: string): Promise<PdlSokBydelResponse
 	return withPdlTokenRetry((token) => pdlRequest<PdlSokBydelResponse>(token, queryDoc, queryVariables));
 };
 
-export const bydelSearchHandler = async (req: Request, res: Response) => {
-	const { postnummer } = req.query;
+export const bydel = new Hono<LookupEnv>().get('/', countLookup('bydel'), async (c) => {
+	// A repeated postnummer counts as a missing one
+	const values = c.req.queries('postnummer');
+	const postnummer = values?.length === 1 ? values[0] : undefined;
 
-	if (typeof postnummer !== 'string' || !postnummer.trim()) {
-		recordLookup('bydel', 'invalid');
-		return res.status(400).send({ error: 'Postnummer is required' });
+	if (postnummer === undefined || !postnummer.trim()) {
+		return c.json({ error: 'Postnummer is required' }, 400);
 	}
 
 	const sanitizedPostnummer = sanitizePostnummer(postnummer);
 
 	if (!sanitizedPostnummer) {
-		recordLookup('bydel', 'invalid');
-		return res.status(400).send({ error: 'Invalid postnummer' });
+		return c.json({ error: 'Invalid postnummer' }, 400);
 	}
 
-	try {
-		const response = await fetchPdlBydelSok(sanitizedPostnummer);
+	const response = await fetchPdlBydelSok(sanitizedPostnummer);
 
-		if ('error' in response) {
-			recordLookup('bydel', response.statusCode < 500 ? 'invalid' : 'error');
-			return res.status(response.statusCode).send({ error: response.message });
-		}
-
-		const bydelerResponse = toBydelerResponse(response);
-		recordLookup('bydel', bydelerResponse.bydeler.length > 0 ? 'hits' : 'empty');
-
-		return res.status(200).send(bydelerResponse);
-	} catch (e) {
-		logger.error('Unexpected error in bydel search handler', e);
-		recordLookup('bydel', 'error');
-		return res.status(500).send({
-			error: 'Internal server error',
-		});
+	if ('error' in response) {
+		return c.json({ error: response.message }, response.statusCode as ContentfulStatusCode);
 	}
-};
+
+	const bydelerResponse = toBydelerResponse(response);
+	c.set('lookupResult', bydelerResponse.bydeler.length > 0 ? 'hits' : 'empty');
+
+	return c.json(bydelerResponse);
+});
