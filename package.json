@@ -1,47 +1,48 @@
 {
-  "name": "nav-office-search-api",
-  "version": "1.0.0",
-  "private": true,
-  "engines": {
-    "node": "26"
-  },
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": "26.13.0",
-      "onFail": "download"
-    }
-  },
-  "packageManager": "pnpm@12.18.0+sha512.9d7882d5dc82147ecfc4e062aa34834e0ad0296710a1837a1115ae012127d36b7109e321ac1598a1dd0a65597681b1e99917e12ed0d749eae91187943363beb3",
-  "type": "module",
-  "module": "es",
-  "scripts": {
-    "build": "rm -fr distSrc && tsc",
-    "dev": "tsc && (tsc -w --preserveWatchOutput &) && node --watch-path=distSrc -r dotenv/config distSrc/server.js",
-    "lint": "eslint src/",
-    "start": "node distSrc/server.js",
-    "test": "pnpm run build && pnpm run test:run",
-    "test:run": "node --test tests/*.test.mjs",
-    "prepare": "husky || true"
-  },
-  "dependencies": {
-    "@prometheus-io/client": "0.16.1",
-    "express": "4.22.1",
-    "graphql": "16.14.2",
-    "graphql-request": "7.4.0",
-    "node-cache": "5.1.2",
-    "node-schedule": "2.1.2"
-  },
-  "devDependencies": {
-    "@eslint/js": "10.0.1",
-    "@types/express": "4.17.21",
-    "@types/node": "26.6.5",
-    "@types/node-schedule": "2.1.8",
-    "dotenv": "18.0.9",
-    "eslint": "10.14.0",
-    "husky": "9.1.7",
-    "prettier": "3.9.10",
-    "typescript": "6.0.3",
-    "typescript-eslint": "8.72.1"
-  }
+	"name": "nav-office-search-api",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"module": "es",
+	"scripts": {
+		"build": "rm -fr distSrc && tsc",
+		"dev": "tsc && (tsc -w --preserveWatchOutput &) && node --watch-path=distSrc -r dotenv/config distSrc/server.js",
+		"format": "oxfmt",
+		"lint": "oxfmt --check && eslint src/",
+		"start": "node distSrc/server.js",
+		"test": "pnpm run build && pnpm run test:run",
+		"test:run": "node --test tests/*.test.mjs",
+		"prepare": "husky || true"
+	},
+	"dependencies": {
+		"@prometheus-io/client": "0.16.1",
+		"express": "4.22.1",
+		"graphql": "16.14.2",
+		"graphql-request": "7.4.0",
+		"node-cache": "5.1.2",
+		"node-schedule": "2.1.2"
+	},
+	"devDependencies": {
+		"@eslint/js": "10.0.1",
+		"@types/express": "4.17.21",
+		"@types/node": "26.6.5",
+		"@types/node-schedule": "2.1.8",
+		"dotenv": "18.0.9",
+		"eslint": "10.14.0",
+		"husky": "9.1.7",
+		"oxfmt": "0.78.0",
+		"typescript": "6.0.3",
+		"typescript-eslint": "8.72.1"
+	},
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": "26.13.0",
+			"onFail": "download"
+		}
+	},
+	"engines": {
+		"node": "26"
+	},
+	"packageManager": "pnpm@12.18.0+sha512.9d7882d5dc82147ecfc4e062aa34834e0ad0296710a1837a1115ae012127d36b7109e321ac1598a1dd0a65597681b1e99917e12ed0d749eae91187943363beb3"
 }

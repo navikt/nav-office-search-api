@@ -39,13 +39,13 @@ Runs on port 3003. Deployed as a Docker container.
 
 `src/metrics.ts` defines business metrics with `@prometheus-io/client` (the official successor of `prom-client`) on a dedicated registry, exposed at `/internal/metrics` and scraped via `spec.prometheus` in the NAIS manifests. HTTP latency/status is covered by OTel auto-instrumentation and ingress metrics, so app metrics focus on business outcomes:
 
-| Metric                                                      | Type      | Labels                                                                               |
-| ----------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------ |
-| `nav_office_search_api_lookups_total`                       | counter   | `operation` = geoid/adresse/bydel, `result` = hits/empty/invalid/error               |
-| `nav_office_search_api_norg_refresh_total`                  | counter   | `result` = success/failure                                                           |
-| `nav_office_search_api_norg_last_success_timestamp_seconds` | gauge     | –                                                                                    |
-| `nav_office_search_api_norg_geoids_loaded`                  | gauge     | –                                                                                    |
-| `nav_office_search_api_norg_refresh_failed_offices`         | gauge     | – (offices whose areas failed to load in the last refresh; stale data reused)        |
+| Metric                                                      | Type    | Labels                                                                        |
+| ----------------------------------------------------------- | ------- | ----------------------------------------------------------------------------- |
+| `nav_office_search_api_lookups_total`                       | counter | `operation` = geoid/adresse/bydel, `result` = hits/empty/invalid/error        |
+| `nav_office_search_api_norg_refresh_total`                  | counter | `result` = success/failure                                                    |
+| `nav_office_search_api_norg_last_success_timestamp_seconds` | gauge   | –                                                                             |
+| `nav_office_search_api_norg_geoids_loaded`                  | gauge   | –                                                                             |
+| `nav_office_search_api_norg_refresh_failed_offices`         | gauge   | – (offices whose areas failed to load in the last refresh; stale data reused) |
 
 The `result` vocabulary and `operation` label deliberately match the nav-office-search frontend (`nav_office_search_*`), which measures the same lookups from the client side. Process metrics come from NAIS, and request latency from OTel/ingress, so they are not duplicated here.
 
@@ -76,7 +76,7 @@ Declared in `src/global.d.ts`:
 - **Language**: TypeScript (strict mode, nodenext module resolution)
 - **Framework**: Express
 - **Package manager**: pnpm
-- **Linting**: ESLint with typescript-eslint
+- **Linting and formatting**: ESLint with typescript-eslint; oxfmt (`oxfmt.config.ts`)
 - **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron), `@prometheus-io/client` (metrics)
 
 ## Build & Run
@@ -84,7 +84,8 @@ Declared in `src/global.d.ts`:
 - `pnpm run build` – Compiles TS to `distSrc/`
 - `pnpm run dev` – Build + run with dotenv
 - `pnpm run start` – Run compiled JS
-- `pnpm run lint` – ESLint
+- `pnpm run format` – Format with oxfmt
+- `pnpm run lint` – oxfmt check, then ESLint
 - `pnpm run test` – Build and run the Node.js test suite
 
 ## Deployment

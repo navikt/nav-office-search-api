@@ -8,25 +8,25 @@ let isReady = false;
 const app = createApp(() => isReady);
 
 const refreshOfficeData = async () => {
-    if (await loadNorgOfficeInfo()) {
-        isReady = true;
-    }
+	if (await loadNorgOfficeInfo()) {
+		isReady = true;
+	}
 };
 
 const server = app.listen(appPort, () => {
-    void refreshOfficeData();
-    schedule.scheduleJob({ hour: 5, minute: 0, second: 0 }, refreshOfficeData);
+	void refreshOfficeData();
+	schedule.scheduleJob({ hour: 5, minute: 0, second: 0 }, refreshOfficeData);
 
-    console.log(`Server starting on port ${appPort}`);
+	console.log(`Server starting on port ${appPort}`);
 });
 
 const shutdown = () => {
-    console.log('Server shutting down');
+	console.log('Server shutting down');
 
-    server.close(() => {
-        console.log('Shutdown complete!');
-        process.exit(0);
-    });
+	server.close(() => {
+		console.log('Shutdown complete!');
+		process.exit(0);
+	});
 };
 
 process.on('SIGTERM', shutdown);
