@@ -1,3 +1,4 @@
+import { logger } from '@navikt/navno-logger';
 import { ClientError, request } from 'graphql-request';
 import { env } from '../env.ts';
 import { getAccessToken, invalidateAccessToken } from './token.ts';
@@ -17,11 +18,11 @@ const pdlQueryError = (): ErrorResponse => ({
 const logPdlFailure = (description: string, e: unknown) => {
 	if (e instanceof ClientError) {
 		const codes = e.response.errors?.map((error) => String(error.extensions?.code ?? 'unknown')) ?? [];
-		console.error(`${description}: HTTP ${e.response.status}, error codes: ${codes.join(', ') || 'none'}`);
+		logger.error(description, { status: e.response.status, errorCodes: codes });
 		return;
 	}
 
-	console.error(`${description}:`, e);
+	logger.error(description, e);
 };
 
 export const pdlRequest = <T>(bearerToken: string, queryDoc: string, queryVariables: Record<string, unknown>) =>
@@ -37,7 +38,7 @@ export const withPdlTokenRetry = async <T>(requestFn: (token: string) => Promise
 		const is401 = e instanceof ClientError && e.response.status === 401;
 
 		if (is401 && !env.PDL_DEVELOPMENT_TOKEN) {
-			console.warn('PDL returned 401, retrying with fresh token');
+			logger.warn('PDL returned 401, retrying with fresh token');
 			invalidateAccessToken();
 			try {
 				const freshToken = await getAccessToken();

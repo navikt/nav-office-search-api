@@ -1,3 +1,4 @@
+import { logger } from '@navikt/navno-logger';
 import schedule from 'node-schedule';
 import { createApp } from './app.ts';
 import { env } from './env.ts';
@@ -18,14 +19,14 @@ const server = app.listen(appPort, () => {
 	void refreshOfficeData();
 	schedule.scheduleJob({ hour: 5, minute: 0, second: 0 }, refreshOfficeData);
 
-	console.log(`Server starting on port ${appPort}`);
+	logger.info('Server listening', { port: appPort });
 });
 
 const shutdown = () => {
-	console.log('Server shutting down');
+	logger.info('Server shutting down');
 
 	server.close(() => {
-		console.log('Shutdown complete!');
+		logger.info('Shutdown complete!');
 		process.exit(0);
 	});
 };

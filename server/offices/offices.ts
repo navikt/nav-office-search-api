@@ -1,3 +1,4 @@
+import { logger } from '@navikt/navno-logger';
 import { env } from '../env.ts';
 import { fetchJson, type OkResponse } from '../fetch.ts';
 import { recordNorgRefreshFailure, recordNorgRefreshSuccess } from '../metrics.ts';
@@ -52,14 +53,14 @@ export const getOfficeData = (geoId: string) => geoIdToEnhetMap.get(geoId);
 // Load office info from norg and refresh the office info map
 export const loadNorgOfficeInfo = async () => {
 	try {
-		console.log('Loading office data from norg...');
+		logger.info('Loading office data from norg');
 
 		const enhetResponse = await fetchJson<NorgEnhetResponse>(norgEnhetApi, {
 			enhetStatusListe: 'AKTIV',
 		});
 
 		if (enhetResponse.error) {
-			console.error(`Fetch error from norg enhet: ${enhetResponse.message}`);
+			logger.error('Fetch error from norg enhet', { error: enhetResponse.message });
 			recordNorgRefreshFailure();
 			return false;
 		}
@@ -81,7 +82,7 @@ export const loadNorgOfficeInfo = async () => {
 					}
 				});
 
-				console.error(`Fetch error from norg navkontorer: ${kontorerResponse.message}`);
+				logger.error('Fetch error from norg navkontorer', { enhetNr: enhet.enhetNr, error: kontorerResponse.message });
 			} else {
 				const enhetSimple = simplifyNorgEnhet(enhet);
 
@@ -96,10 +97,10 @@ export const loadNorgOfficeInfo = async () => {
 		const geoIdsLoaded = geoIdToEnhetMap.size;
 		recordNorgRefreshSuccess(geoIdsLoaded, failedOffices);
 
-		console.log(`Finished loading office data! Offices for ${geoIdsLoaded} geoids loaded.`);
+		logger.info('Finished loading office data', { geoIds: geoIdsLoaded, failedOffices });
 		return true;
 	} catch (error) {
-		console.error('Error loading office data:', error);
+		logger.error('Error loading office data', error);
 		recordNorgRefreshFailure();
 		return false;
 	}

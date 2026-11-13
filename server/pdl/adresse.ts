@@ -1,3 +1,4 @@
+import { logger } from '@navikt/navno-logger';
 import type { Request, Response } from 'express';
 import type { ErrorResponse } from '../fetch.ts';
 import { gql } from 'graphql-request';
@@ -139,7 +140,7 @@ export const adresseSearchHandler = async (req: Request, res: Response) => {
 
 		return res.status(200).send(adresseResponse);
 	} catch (e) {
-		console.error('Unexpected error in adresse search handler:', e);
+		logger.error('Unexpected error in adresse search handler', e);
 		recordLookup('adresse', 'error');
 		return res.status(500).send({
 			error: 'Internal server error',

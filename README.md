@@ -14,7 +14,7 @@ Se https://pnpm.io/installation for andre måter. pnpm leser `packageManager`-fe
 
 ### Kjøre lokalt
 
-Installer avhengigheter:
+Installer avhengigheter (`@navikt`-pakkene kommer fra GitHub Packages, så npm må være logget inn mot `npm.pkg.github.com`):
 
 ```bash
 pnpm install

@@ -103,7 +103,14 @@ The first three come from `.nais/vars-*.yml`. Locally, `.env.development` points
 - **Framework**: Express
 - **Package manager**: pnpm
 - **Linting and formatting**: ESLint with typescript-eslint; oxfmt (`oxfmt.config.ts`)
-- **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron), `@prometheus-io/client` (metrics)
+- **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron), `@prometheus-io/client` (metrics), `@navikt/navno-logger` (logging)
+- **Packages**: `@navikt/*` come from GitHub Packages (`.npmrc`), so installing needs npm authentication for `npm.pkg.github.com`. `pnpm-workspace.yaml` holds new releases back for 3 days (`minimumReleaseAge`), except `@navikt/*` and `@itsy/*`, which the team publishes itself
+
+## Logging
+
+Log with `logger` from `@navikt/navno-logger`, never `console`. It is called like `console`: a message, then an object of fields and/or an error, e.g. `logger.error('Fetch error from norg navkontorer', { enhetNr, error })`. With `NODE_ENV=production` (the image) it writes one JSON line per call, with the trace id of the OpenTelemetry span the NAIS agent opened; in `pnpm dev` it writes readable lines through `pino-pretty`. `LOG_LEVEL` sets the lowest level (default `info`). Under Vitest it writes through `console` instead, so `silent: 'passed-only'` shows only a failing test's logs; tests assert on logging with `vi.spyOn(logger, …)`.
+
+Keep the message fixed and put values in fields, so the logs can be searched by message. Never log what a user searched for (addresses, postnummer, geoIds) or PDL's error text, which can hold our query.
 
 ## Build & Run
 

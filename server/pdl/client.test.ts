@@ -1,9 +1,11 @@
+import { logger } from '@navikt/navno-logger';
 import { describe, expect, test, vi } from 'vitest';
 import { startApp } from '#test/app.ts';
 import { installMockFetch } from '#test/fetch.ts';
 import {
 	NAIS_TOKEN_ENDPOINT,
 	PDL_GRAPHQL_URL,
+	PDL_TOKEN_TARGET,
 	pdlAdresseAnswer,
 	pdlErrorAnswer,
 	texasToken,
@@ -14,13 +16,16 @@ const http = installMockFetch();
 
 const authorizations = () => http.callsTo(PDL_GRAPHQL_URL).map((call) => call.headers.get('authorization'));
 
+// Every log call in order, as [level, ...args]
 const logged = () => {
-	const spies = [vi.spyOn(console, 'log'), vi.spyOn(console, 'warn'), vi.spyOn(console, 'error')];
+	const spies = (['debug', 'info', 'warn', 'error'] as const).map((level) => [level, vi.spyOn(logger, level)] as const);
 	return () =>
 		spies
-			.flatMap((spy) => spy.mock.calls)
-			.map((args) => args.map(String).join(' '))
-			.join('\n');
+			.flatMap(([level, spy]) =>
+				spy.mock.calls.map((args, i) => ({ order: spy.mock.invocationCallOrder[i] ?? 0, call: [level, ...args] }))
+			)
+			.sort((a, b) => a.order - b.order)
+			.map(({ call }) => call);
 };
 
 describe('a PDL request', () => {
@@ -62,8 +67,12 @@ describe('a PDL request', () => {
 		expect(res.status).toBe(502);
 		expect(await res.json()).toEqual({ error: 'PDL request failed' });
 		expect(http.callsTo(PDL_GRAPHQL_URL)).toHaveLength(2);
-		expect(logs()).toContain('PDL retry after 401 also failed: HTTP 401, error codes: unauthenticated');
-		expect(logs()).not.toMatch(/Storgata|Token rejected/);
+		expect(logs()).toEqual([
+			['info', 'Fetching new access token from NAIS token endpoint', { target: PDL_TOKEN_TARGET }],
+			['warn', 'PDL returned 401, retrying with fresh token'],
+			['info', 'Fetching new access token from NAIS token endpoint', { target: PDL_TOKEN_TARGET }],
+			['error', 'PDL retry after 401 also failed', { status: 401, errorCodes: ['unauthenticated'] }],
+		]);
 	});
 
 	test('does not retry a 401 with PDL_DEVELOPMENT_TOKEN', async () => {
@@ -99,7 +108,9 @@ describe('a PDL request', () => {
 
 		await app.get('/adresse?queryString=Storgata%2031B');
 
-		expect(logs()).toContain('PDL request failed: HTTP 503, error codes: server_error');
-		expect(logs()).not.toMatch(/Storgata|PDL unavailable/);
+		expect(logs()).toEqual([
+			['info', 'Fetching new access token from NAIS token endpoint', { target: PDL_TOKEN_TARGET }],
+			['error', 'PDL request failed', { status: 503, errorCodes: ['server_error'] }],
+		]);
 	});
 });

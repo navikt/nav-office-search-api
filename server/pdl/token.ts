@@ -1,3 +1,4 @@
+import { logger } from '@navikt/navno-logger';
 import NodeCache from 'node-cache';
 import { env } from '../env.ts';
 
@@ -15,7 +16,7 @@ const tokenCache = new NodeCache();
 const fetchNewAccessToken = async (): Promise<AzureAdTokenPayload> => {
 	const { NAIS_TOKEN_ENDPOINT, PDL_TOKEN_TARGET: target } = env;
 
-	console.log(`Fetching new access token from NAIS token endpoint for target: ${target} on ${NAIS_TOKEN_ENDPOINT}`);
+	logger.info('Fetching new access token from NAIS token endpoint', { target });
 
 	const response = await fetch(NAIS_TOKEN_ENDPOINT, {
 		method: 'POST',
@@ -41,8 +42,6 @@ export const getAccessToken = async (): Promise<string> => {
 	if (cached) {
 		return cached;
 	}
-
-	console.log('Fetching new access token from NAIS token endpoint');
 
 	const tokenPayload = await fetchNewAccessToken();
 	const ttl = Math.max(tokenPayload.expires_in - TOKEN_EXPIRY_BUFFER_SECONDS, 0);

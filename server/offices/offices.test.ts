@@ -1,5 +1,6 @@
 import { networkError } from '@itsy/corgi/testing';
-import { describe, expect, test } from 'vitest';
+import { logger } from '@navikt/navno-logger';
+import { describe, expect, test, vi } from 'vitest';
 import { startApp, type TestApp } from '#test/app.ts';
 import { installMockFetch } from '#test/fetch.ts';
 import { navkontor, norgEnhet, norgEnhetUrl, norgNavkontorerUrl } from '#test/fixtures.ts';
@@ -27,9 +28,15 @@ describe('loading offices from NORG', () => {
 		http.get(norgEnhetUrl, { json: [grunerlokka, sagene, fylkeskontor] });
 		http.get(norgNavkontorerUrl('0315'), { json: [navkontor('030102', 1)] });
 		http.get(norgNavkontorerUrl('0314'), { json: [navkontor('030103', 2), navkontor('030104', 2)] });
+		const info = vi.spyOn(logger, 'info');
 		const app = await startApp();
 
 		expect(await app.loadOffices()).toBe(true);
+
+		expect(info.mock.calls).toEqual([
+			['Loading office data from norg'],
+			['Finished loading office data', { geoIds: 3, failedOffices: 0 }],
+		]);
 
 		expect(http.callsTo(norgEnhetUrl)[0]?.query.get('enhetStatusListe')).toBe('AKTIV');
 		expect(http.calls.map((call) => call.pathname)).not.toContain('/norg2/api/v1/enhet/navkontorer/0200');
@@ -58,9 +65,13 @@ describe('loading offices from NORG', () => {
 		['is unreachable', networkError()],
 	])('fails when the office list %s', async (_, reply) => {
 		http.get(norgEnhetUrl, reply);
+		const error = vi.spyOn(logger, 'error');
 		const app = await startApp();
 
 		expect(await app.loadOffices()).toBe(false);
+
+		// The alert's action names this message
+		expect(error.mock.calls).toEqual([['Fetch error from norg enhet', { error: expect.any(String) }]]);
 
 		expect(await officeFor(app, '030102')).toBe(404);
 		expect(await refreshes(app)).toEqual({ success: 0, failure: 1, geoIdsLoaded: 0, failedOffices: 0 });
@@ -85,10 +96,15 @@ describe('loading offices from NORG', () => {
 			{ status: 503, json: { message: 'Service Unavailable' } },
 		]);
 		http.get(norgNavkontorerUrl('0314'), [{ json: [navkontor('030103', 2)] }, { json: [navkontor('030104', 2)] }]);
+		const error = vi.spyOn(logger, 'error');
 		const app = await startApp();
 		await app.loadOffices();
 
 		expect(await app.loadOffices()).toBe(true);
+
+		expect(error.mock.calls).toEqual([
+			['Fetch error from norg navkontorer', { enhetNr: '0315', error: expect.any(String) }],
+		]);
 
 		expect(await officeFor(app, '030102')).toBe('0315');
 		expect(await officeFor(app, '030103')).toBe(404);

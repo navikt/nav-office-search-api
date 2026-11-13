@@ -5,6 +5,7 @@
  */
 
 import { mockFetch } from '@itsy/corgi/testing';
+import { logger } from '@navikt/navno-logger';
 import {
 	NAIS_TOKEN_ENDPOINT,
 	PDL_GRAPHQL_URL,
@@ -37,5 +38,5 @@ if (process.env.MOCKS !== 'false') {
 	);
 
 	http.install();
-	console.log('Mocks: NORG, PDL and Texas are answered from test/fixtures.ts (MOCKS=false turns this off)');
+	logger.info('Mocks: NORG, PDL and Texas are answered from test/fixtures.ts (MOCKS=false turns this off)');
 }

@@ -11,7 +11,7 @@ export default defineConfig({
 			PDL_TOKEN_TARGET,
 			NAIS_TOKEN_ENDPOINT,
 		},
-		// The app logs with console.*; show it only for a failing test
+		// Under Vitest the logger writes through console, so only a failing test's logs are shown
 		silent: 'passed-only',
 		restoreMocks: true,
 		unstubEnvs: true,
