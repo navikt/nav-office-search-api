@@ -7,9 +7,8 @@ import {
 const norgEnhetApi = process.env.NORG_ENHET_API;
 const norgNavkontorerApi = `${process.env.NORG_ENHET_API}/navkontorer`;
 
-type GeoIdToEnhetMap = {
-    [geoId: string]: NorgEnhetSimple;
-};
+// Map is intentional here to avoid old school object-hijinks like 'constructor' and '__proto__'
+type GeoIdToEnhetMap = Map<string, NorgEnhetSimple>;
 
 type NorgEnhet = {
     aktiveringsdato: string;
@@ -48,9 +47,9 @@ const simplifyNorgEnhet = (norgEnhet: NorgEnhet): NorgEnhetSimple => ({
     navn: norgEnhet.navn,
 });
 
-let geoIdToEnhetMap: GeoIdToEnhetMap = {};
+let geoIdToEnhetMap: GeoIdToEnhetMap = new Map();
 
-export const getOfficeData = (geoId: string) => geoIdToEnhetMap[geoId];
+export const getOfficeData = (geoId: string) => geoIdToEnhetMap.get(geoId);
 
 // Load office info from norg and refresh the office info map
 export const loadNorgOfficeInfo = async () => {
@@ -69,7 +68,7 @@ export const loadNorgOfficeInfo = async () => {
             return false;
         }
 
-        const newEnhetMap: GeoIdToEnhetMap = {};
+        const newEnhetMap: GeoIdToEnhetMap = new Map();
         let failedOffices = 0;
 
         const lokalEnheter = enhetResponse.filter(
@@ -84,13 +83,11 @@ export const loadNorgOfficeInfo = async () => {
             if (kontorerResponse.error) {
                 failedOffices++;
                 // Reuse the previous data if fetching new data failed
-                Object.entries(geoIdToEnhetMap).forEach(
-                    ([geoId, prevEnhet]) => {
-                        if (prevEnhet.enhetNr === enhet.enhetNr) {
-                            newEnhetMap[geoId] = prevEnhet;
-                        }
+                geoIdToEnhetMap.forEach((prevEnhet, geoId) => {
+                    if (prevEnhet.enhetNr === enhet.enhetNr) {
+                        newEnhetMap.set(geoId, prevEnhet);
                     }
-                );
+                });
 
                 console.error(
                     `Fetch error from norg navkontorer: ${kontorerResponse.message}`
@@ -99,14 +96,14 @@ export const loadNorgOfficeInfo = async () => {
                 const enhetSimple = simplifyNorgEnhet(enhet);
 
                 kontorerResponse.forEach((item) => {
-                    newEnhetMap[item.geografiskOmraade] = enhetSimple;
+                    newEnhetMap.set(item.geografiskOmraade, enhetSimple);
                 });
             }
         }
 
         geoIdToEnhetMap = newEnhetMap;
 
-        const geoIdsLoaded = Object.keys(geoIdToEnhetMap).length;
+        const geoIdsLoaded = geoIdToEnhetMap.size;
         recordNorgRefreshSuccess(geoIdsLoaded, failedOffices);
 
         console.log(
