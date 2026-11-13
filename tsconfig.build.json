@@ -1,0 +1,12 @@
+// Compiles src/ to distSrc/, without the tests
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"allowImportingTsExtensions": false,
+		"noEmit": false,
+		"outDir": "./distSrc",
+		"rootDir": "src"
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["src/**/*.test.ts"]
+}
