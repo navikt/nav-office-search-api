@@ -88,19 +88,6 @@ describe('a PDL request', () => {
 		expect(http.callsTo(PDL_GRAPHQL_URL)).toHaveLength(1);
 	});
 
-	test('answers 502 when PDL_API is not set, and logs why', async () => {
-		vi.stubEnv('PDL_API', undefined);
-		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken() });
-		const logs = logged();
-		const app = await startApp();
-
-		const res = await app.get('/adresse?queryString=Storgata');
-
-		expect(res.status).toBe(502);
-		expect(logs()).toContain('PDL_API environment variable is not set');
-		expect(http.callsTo(PDL_GRAPHQL_URL)).toHaveLength(0);
-	});
-
 	test('logs only the status and error codes when PDL fails, not the search or PDL text', async () => {
 		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken() });
 		http.post(PDL_GRAPHQL_URL, {

@@ -1,8 +1,9 @@
 // NORG, PDL and Texas answers in their wire shape, and the hosts the tests point the app at
 
-export const NORG_ENHET_API = 'http://norg2.test/norg2/api/v1/enhet';
-export const PDL_API = 'http://pdl-api.test';
-export const PDL_GRAPHQL_URL = `${PDL_API}/graphql`;
+export const NORG2_ORIGIN = 'http://norg2.test';
+export const PDL_ORIGIN = 'http://pdl-api.test';
+export const PDL_GRAPHQL_URL = `${PDL_ORIGIN}/graphql`;
+export const PDL_TOKEN_TARGET = 'api://test-fss.pdl.pdl-api/.default';
 export const NAIS_TOKEN_ENDPOINT = 'http://texas.test/api/v1/token';
 
 // NORG
@@ -55,8 +56,8 @@ export const navkontor = (geografiskOmraade: string, enhetId = 100000001) => ({
 	alternativEnhetId: null,
 });
 
-export const norgEnhetUrl = NORG_ENHET_API;
-export const norgNavkontorerUrl = (enhetNr: string) => `${NORG_ENHET_API}/navkontorer/${enhetNr}`;
+export const norgEnhetUrl = `${NORG2_ORIGIN}/norg2/api/v1/enhet`;
+export const norgNavkontorerUrl = (enhetNr: string) => `${norgEnhetUrl}/navkontorer/${enhetNr}`;
 
 // PDL
 

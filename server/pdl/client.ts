@@ -1,16 +1,9 @@
 import { ClientError, request } from 'graphql-request';
+import { env } from '../env.ts';
 import { getAccessToken, invalidateAccessToken } from './token.ts';
 import type { ErrorResponse } from '../fetch.ts';
 
-export const getPdlGraphQLUrl = (): string => {
-	const { PDL_API } = process.env;
-
-	if (!PDL_API) {
-		throw new Error('PDL_API environment variable is not set');
-	}
-
-	return `${PDL_API}/graphql`;
-};
+const pdlGraphQLUrl = `${env.PDL_ORIGIN}/graphql`;
 
 // Error-boundry, log the error here but don't send the message downstream
 const pdlQueryError = (): ErrorResponse => ({
@@ -32,18 +25,18 @@ const logPdlFailure = (description: string, e: unknown) => {
 };
 
 export const pdlRequest = <T>(bearerToken: string, queryDoc: string, queryVariables: Record<string, unknown>) =>
-	request<T>(getPdlGraphQLUrl(), queryDoc, queryVariables, {
+	request<T>(pdlGraphQLUrl, queryDoc, queryVariables, {
 		Authorization: `Bearer ${bearerToken}`,
 	});
 
 export const withPdlTokenRetry = async <T>(requestFn: (token: string) => Promise<T>): Promise<T | ErrorResponse> => {
 	try {
-		const token = process.env.PDL_DEVELOPMENT_TOKEN || (await getAccessToken());
+		const token = env.PDL_DEVELOPMENT_TOKEN ?? (await getAccessToken());
 		return await requestFn(token);
 	} catch (e) {
 		const is401 = e instanceof ClientError && e.response.status === 401;
 
-		if (is401 && !process.env.PDL_DEVELOPMENT_TOKEN) {
+		if (is401 && !env.PDL_DEVELOPMENT_TOKEN) {
 			console.warn('PDL returned 401, retrying with fresh token');
 			invalidateAccessToken();
 			try {

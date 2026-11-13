@@ -1,8 +1,9 @@
 import schedule from 'node-schedule';
 import { createApp } from './app.ts';
+import { env } from './env.ts';
 import { loadNorgOfficeInfo } from './offices/offices.ts';
 
-const appPort = 3003;
+const appPort = env.PORT;
 
 let isReady = false;
 const app = createApp(() => isReady);

@@ -23,17 +23,18 @@ spec:
       enabled: true
       runtime: nodejs
   ingresses:
-    - https://nav-office-search-api.intern.dev.nav.no
-    - https://nav-office-search-api.dev-fss-pub.nais.io
+  {{#each ingresses as |ingress|}}
+    - {{ingress}}
+  {{/each}}
   env:
-    - name: NPM_CONFIG_CACHE
-      value: /tmp/npm-cache
     - name: NODE_EXTRA_CA_CERTS
       value: "/etc/ssl/ca-bundle.pem"
-    - name: NORG_ENHET_API
-      value: https://app-q2.adeo.no/norg2/api/v1/enhet
-    - name: PDL_API
-      value: https://pdl-api.intern.dev.nav.no
+    - name: NORG2_ORIGIN
+      value: {{norg2Origin}}
+    - name: PDL_ORIGIN
+      value: {{pdlOrigin}}
+    - name: PDL_TOKEN_TARGET
+      value: {{pdlTokenTarget}}
   webproxy: true
   azure:
     application:
@@ -43,18 +44,22 @@ spec:
       rules:
         - application: nav-office-search
           namespace: navno
-          cluster: dev-gcp
+          cluster: {{frontendCluster}}
+      {{#if tokenxTokenGenerator}}
         - application: tokenx-token-generator
           namespace: nais
-          cluster: dev-fss
+          cluster: {{cluster}}
+      {{/if}}
     outbound:
       rules:
         - application: pdl-api
           namespace: pdl
-          cluster: dev-fss
+          cluster: {{cluster}}
   replicas:
-    min: 1
-    max: 1
+  {{#with replicas}}
+    min: {{min}}
+    max: {{max}}
+  {{/with}}
   resources:
     limits:
       memory: 512Mi

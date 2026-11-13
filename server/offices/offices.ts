@@ -1,8 +1,9 @@
+import { env } from '../env.ts';
 import { fetchJson, type OkResponse } from '../fetch.ts';
 import { recordNorgRefreshFailure, recordNorgRefreshSuccess } from '../metrics.ts';
 
-const norgEnhetApi = process.env.NORG_ENHET_API;
-const norgNavkontorerApi = `${process.env.NORG_ENHET_API}/navkontorer`;
+const norgEnhetApi = `${env.NORG2_ORIGIN}/norg2/api/v1/enhet`;
+const norgNavkontorerApi = `${norgEnhetApi}/navkontorer`;
 
 // Map is intentional here to avoid old school object-hijinks like 'constructor' and '__proto__'
 type GeoIdToEnhetMap = Map<string, NorgEnhetSimple>;

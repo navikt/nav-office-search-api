@@ -1,0 +1,13 @@
+cluster: dev-fss
+frontendCluster: dev-gcp
+ingresses:
+  - https://nav-office-search-api.intern.dev.nav.no
+  - https://nav-office-search-api.dev-fss-pub.nais.io
+norg2Origin: https://app-q2.adeo.no
+pdlOrigin: https://pdl-api.intern.dev.nav.no
+pdlTokenTarget: api://dev-fss.pdl.pdl-api/.default
+# Lets NAIS's token generator make tokens for this app, for trying it out in dev
+tokenxTokenGenerator: true
+replicas:
+  min: 1
+  max: 1

@@ -1,0 +1,12 @@
+cluster: prod-fss
+frontendCluster: prod-gcp
+ingresses:
+  - https://nav-office-search-api.intern.nav.no
+  - https://nav-office-search-api.prod-fss-pub.nais.io
+norg2Origin: https://app.adeo.no
+pdlOrigin: https://pdl-api.intern.nav.no
+pdlTokenTarget: api://prod-fss.pdl.pdl-api/.default
+tokenxTokenGenerator: false
+replicas:
+  min: 2
+  max: 2

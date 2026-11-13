@@ -22,7 +22,8 @@ jobs:
     permissions: { contents: read, id-token: write }
     with:
       cluster: prod-fss
-      resource: .nais/config.prod.yaml
+      resource: .nais/config.yml
+      vars: .nais/vars-prod.yml
       var: image=${{ needs.build.outputs.image }}
 
   # Prod only, so dev doesn't page the team channel
@@ -32,4 +33,4 @@ jobs:
     permissions: { contents: read, id-token: write }
     with:
       cluster: prod-fss
-      resource: .nais/alerts.yaml
+      resource: .nais/alerts.yml

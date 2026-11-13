@@ -1,4 +1,5 @@
 import NodeCache from 'node-cache';
+import { env } from '../env.ts';
 
 const TOKEN_CACHE_KEY = 'pdl-access-token';
 const TOKEN_EXPIRY_BUFFER_SECONDS = 60;
@@ -12,17 +13,8 @@ type AzureAdTokenPayload = {
 const tokenCache = new NodeCache();
 
 const fetchNewAccessToken = async (): Promise<AzureAdTokenPayload> => {
-	const { NAIS_TOKEN_ENDPOINT, NAIS_CLUSTER_NAME } = process.env;
+	const { NAIS_TOKEN_ENDPOINT, PDL_TOKEN_TARGET: target } = env;
 
-	if (!NAIS_TOKEN_ENDPOINT) {
-		throw new Error('NAIS_TOKEN_ENDPOINT environment variable is not set');
-	}
-
-	if (!NAIS_CLUSTER_NAME) {
-		throw new Error('NAIS_CLUSTER_NAME environment variable is not set');
-	}
-
-	const target = `api://${NAIS_CLUSTER_NAME}.pdl.pdl-api/.default`;
 	console.log(`Fetching new access token from NAIS token endpoint for target: ${target} on ${NAIS_TOKEN_ENDPOINT}`);
 
 	const response = await fetch(NAIS_TOKEN_ENDPOINT, {
