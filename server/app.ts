@@ -1,3 +1,4 @@
+import { logger } from '@navikt/navno-logger';
 import express, { type Request, type Response } from 'express';
 import { adresseSearchHandler } from './pdl/adresse.ts';
 import { bydelSearchHandler } from './pdl/bydel.ts';
@@ -38,7 +39,7 @@ export const createApp = (isReady: () => boolean) => {
 			res.set('Content-Type', metricsRegistry.contentType);
 			return res.send(await metricsRegistry.metrics());
 		} catch (e) {
-			console.error('Failed to collect metrics:', e);
+			logger.error('Failed to collect metrics', e);
 			return res.status(500).send('Failed to collect metrics');
 		}
 	});

@@ -1,3 +1,4 @@
+import { logger } from '@navikt/navno-logger';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -24,5 +25,16 @@ export const parseEnv = (source: Record<string, string | undefined>) => {
 	return parsed.data;
 };
 
+const readEnv = () => {
+	try {
+		return parseEnv(process.env);
+	} catch (e) {
+		// It happens while the server's modules load, before main.ts runs. Logged and exited here, since Node would
+		// print a thrown error as plain text.
+		logger.error('Server failed to start', e);
+		process.exit(1);
+	}
+};
+
 // Read when the server starts, so a misconfigured pod crashes before it takes traffic
-export const env = parseEnv(process.env);
+export const env = readEnv();

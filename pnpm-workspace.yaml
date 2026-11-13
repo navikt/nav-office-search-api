@@ -1,1 +1,3 @@
 minimumReleaseAge: 4320
+# Packages we publish ourselves: Nav's on GitHub Packages, and @itsy's (corgi) on npm
+minimumReleaseAgeExclude: ['@navikt/*', '@itsy/*']

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { parseEnv as parseEnvFile } from 'node:util';
+import { logger } from '@navikt/navno-logger';
 import { describe, expect, test, vi } from 'vitest';
 import { NAIS_TOKEN_ENDPOINT, NORG2_ORIGIN, PDL_ORIGIN, PDL_TOKEN_TARGET } from '#test/fixtures.ts';
 import { parseEnv } from './env.ts';
@@ -76,9 +77,19 @@ test("doesn't put the values in the message, since it ends up in the logs", () =
 
 test('stops the server from loading when a variable is missing, before it takes traffic', async () => {
 	vi.stubEnv('PDL_ORIGIN', undefined);
+	const error = vi.spyOn(logger, 'error');
+	const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
+		throw new Error('process.exit');
+	});
 	vi.resetModules();
 
-	await expect(import('#server/app.ts')).rejects.toThrow('at PDL_ORIGIN');
+	await expect(import('#server/app.ts')).rejects.toThrow('process.exit');
+
+	expect(exit).toHaveBeenCalledWith(1);
+	expect(error).toHaveBeenCalledWith(
+		'Server failed to start',
+		expect.objectContaining({ message: expect.stringContaining('at PDL_ORIGIN') })
+	);
 });
 
 test('`pnpm dev` reads the hosts test/mocks/dev.ts answers, so it runs offline', () => {

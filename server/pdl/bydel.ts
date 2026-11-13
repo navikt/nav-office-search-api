@@ -1,3 +1,4 @@
+import { logger } from '@navikt/navno-logger';
 import type { Request, Response } from 'express';
 import type { ErrorResponse } from '../fetch.ts';
 import { gql } from 'graphql-request';
@@ -83,7 +84,7 @@ export const bydelSearchHandler = async (req: Request, res: Response) => {
 
 		return res.status(200).send(bydelerResponse);
 	} catch (e) {
-		console.error('Unexpected error in bydel search handler:', e);
+		logger.error('Unexpected error in bydel search handler', e);
 		recordLookup('bydel', 'error');
 		return res.status(500).send({
 			error: 'Internal server error',

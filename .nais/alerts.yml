@@ -20,7 +20,7 @@ spec:
           annotations:
             summary: nav-office-search-api has not refreshed office data from NORG for over 2 days
             consequence: Office lookups use stale NORG data. Changed or new offices are wrong or missing.
-            action: Check the logs for "Fetch error from norg" or "Error loading office data". Restarting the pods triggers a new load.
+            action: Check the logs for "Fetch error from norg enhet" or "Error loading office data". Restarting the pods triggers a new load.
           labels:
             namespace: navno
             severity: warning
