@@ -45,38 +45,25 @@ export const fetchNorgOffices = async (): Promise<NorgOffices> => {
 	});
 	const localOffices = enheter.filter(({ type }) => type === 'LOKAL');
 
-	// At most OFFICES_AT_A_TIME requests in flight; results are kept by index so the order stays NORG's
-	const areas: Array<string[] | undefined> = new Array(localOffices.length);
-	let next = 0;
-	let failed = false;
-	const worker = async () => {
-		while (!failed && next < localOffices.length) {
-			const index = next++;
-			try {
-				areas[index] = await areasOf(localOffices[index]!.enhetNr);
-			} catch (e) {
-				// Stop the other workers from asking NORG more
-				failed = true;
-				throw e;
-			}
-		}
-	};
-	await Promise.all(Array.from({ length: Math.min(OFFICES_AT_A_TIME, localOffices.length) }, worker));
-
 	const offices: NorgOffices = new Map();
 	const withoutAreas: string[] = [];
 
-	// In NORG's order: should it list an area under two offices, the last one gets it
-	localOffices.forEach(({ enhetNr, navn }, index) => {
-		const geoIds = areas[index];
-		if (!geoIds) {
-			withoutAreas.push(enhetNr);
-			return;
-		}
-		for (const geoId of geoIds) {
-			offices.set(geoId, { enhetNr, navn });
-		}
-	});
+	for (let i = 0; i < localOffices.length; i += OFFICES_AT_A_TIME) {
+		const some = localOffices.slice(i, i + OFFICES_AT_A_TIME);
+		const areas = await Promise.all(some.map(({ enhetNr }) => areasOf(enhetNr)));
+
+		// In NORG's order: should it list an area under two offices, the last one gets it
+		some.forEach(({ enhetNr, navn }, index) => {
+			const geoIds = areas[index];
+			if (!geoIds) {
+				withoutAreas.push(enhetNr);
+				return;
+			}
+			for (const geoId of geoIds) {
+				offices.set(geoId, { enhetNr, navn });
+			}
+		});
+	}
 
 	if (withoutAreas.length > 0) {
 		logger.warn('Offices without areas in NORG', { count: withoutAreas.length, enhetNr: withoutAreas.slice(0, 20) });
