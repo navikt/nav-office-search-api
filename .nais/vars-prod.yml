@@ -6,6 +6,8 @@ ingresses:
 norg2Origin: https://app.adeo.no
 pdlOrigin: https://pdl-api.intern.nav.no
 pdlTokenTarget: api://prod-fss.pdl.pdl-api/.default
+xpOrigin: https://www.nav.no
+navnoOrigin: https://www.nav.no
 tokenxTokenGenerator: false
 replicas:
   min: 2

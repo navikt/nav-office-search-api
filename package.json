@@ -21,14 +21,14 @@
 		"@itsy/corgi": "1.4.1",
 		"@navikt/navno-logger": "1.2.0",
 		"@prometheus-io/client": "0.16.1",
+		"croner": "11.0.0",
 		"hono": "4.13.17",
-		"node-schedule": "2.1.2",
+		"ufo": "1.6.4",
 		"zod": "4.6.7"
 	},
 	"devDependencies": {
 		"@eslint/js": "10.0.1",
 		"@types/node": "26.6.5",
-		"@types/node-schedule": "2.1.8",
 		"eslint": "10.14.0",
 		"husky": "9.1.7",
 		"oxfmt": "0.78.0",

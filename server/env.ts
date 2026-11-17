@@ -8,6 +8,10 @@ const schema = z.object({
 	PDL_ORIGIN: z.url(),
 	// The audience of PDL's tokens, e.g. api://dev-fss.pdl.pdl-api/.default
 	PDL_TOKEN_TARGET: z.string().min(1),
+	// XP, nav.no's CMS, which lists each office's page. Without the /_/service path
+	XP_ORIGIN: z.url(),
+	// nav.no, where the offices' pages are
+	NAVNO_ORIGIN: z.url(),
 	// Texas, NAIS's token service. NAIS injects it for azure.application
 	NAIS_TOKEN_ENDPOINT: z.url(),
 	// A token for PDL to use locally instead of asking Texas
