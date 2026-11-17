@@ -23,8 +23,7 @@ const charsToReplace = Object.keys(charMap).reduce((acc, char) => {
 const replaceSpecialCharPattern = new RegExp(`[${charsToReplace}]`, 'g');
 
 const replaceSpecialCharFunc = (match: string) => {
-	const newChar = charMap[match];
-	return newChar !== undefined ? newChar : match;
+	return charMap[match] ?? match;
 };
 
 export const normalizeString = (str: string) =>
