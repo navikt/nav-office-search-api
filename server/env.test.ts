@@ -3,6 +3,7 @@ import { parseEnv as parseEnvFile } from 'node:util';
 import { logger } from '@navikt/navno-logger';
 import { describe, expect, test, vi } from 'vitest';
 import { NAIS_TOKEN_ENDPOINT, NORG2_ORIGIN, PDL_ORIGIN, PDL_TOKEN_TARGET } from '#test/fixtures.ts';
+import { readFiles } from './data/files.ts';
 import { parseEnv } from './env.ts';
 
 const valid = {
@@ -40,6 +41,20 @@ describe('PDL_DEVELOPMENT_TOKEN', () => {
 
 	test('rejects an empty one, which would otherwise mean "ask Texas"', () => {
 		expect(() => parseEnv({ ...valid, PDL_DEVELOPMENT_TOKEN: '' })).toThrow('at PDL_DEVELOPMENT_TOKEN');
+	});
+});
+
+describe('DATA_FILES_DIR', () => {
+	test('is optional: the image has the files where the build wrote them', () => {
+		expect(parseEnv(valid).DATA_FILES_DIR).toBeUndefined();
+	});
+
+	test('is kept when set', () => {
+		expect(parseEnv({ ...valid, DATA_FILES_DIR: 'test/fixtures/files' }).DATA_FILES_DIR).toBe('test/fixtures/files');
+	});
+
+	test('rejects an empty one', () => {
+		expect(() => parseEnv({ ...valid, DATA_FILES_DIR: '' })).toThrow('at DATA_FILES_DIR');
 	});
 });
 
@@ -92,14 +107,17 @@ test('stops the server from loading when a variable is missing, before it takes 
 	);
 });
 
-test('`pnpm dev` reads the hosts test/mocks/dev.ts answers, so it runs offline', () => {
+test("`pnpm dev` reads the hosts test/mocks/dev.ts answers and the fixtures' two files, so it runs offline", async () => {
 	const file = readFileSync(new URL('../.env.development', import.meta.url), 'utf-8');
+	const config = parseEnv(parseEnvFile(file));
 
-	expect(parseEnv(parseEnvFile(file))).toEqual({
+	expect(config).toEqual({
 		NORG2_ORIGIN,
 		PDL_ORIGIN,
 		PDL_TOKEN_TARGET,
 		NAIS_TOKEN_ENDPOINT,
+		DATA_FILES_DIR: 'test/fixtures/files',
 		PORT: 3003,
 	});
+	await expect(readFiles(config.DATA_FILES_DIR)).resolves.toBeDefined();
 });

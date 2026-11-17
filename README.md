@@ -26,11 +26,23 @@ Kjør lokalt (Node kjører TypeScript-koden direkte, uten bygg):
 pnpm run dev
 ```
 
-Appen leser `.env.development`, og `test/mocks/dev.ts` svarer på kallene til NORG, PDL og Texas med testdata, så du trenger ikke naisdevice. For å gå mot de ekte tjenestene, sett `MOCKS=false` og de ekte verdiene i skallet (de vinner over filen), for eksempel:
+Appen leser `.env.development`, og `test/mocks/dev.ts` svarer på kallene til NORG, PDL og Texas med testdata, så du trenger ikke naisdevice. Postnummerregisteret og bydelene leses fra små testkopier i `test/fixtures/files`. For å gå mot de ekte tjenestene, sett `MOCKS=false` og de ekte verdiene i skallet (de vinner over filen), for eksempel:
 
 ```bash
 MOCKS=false NORG2_ORIGIN=https://app-q2.adeo.no PDL_ORIGIN=https://pdl-api.intern.dev.nav.no PDL_DEVELOPMENT_TOKEN=<token> pnpm run dev
 ```
+
+### Postnummer og bydeler
+
+Imaget har med seg to filer som bygget laster ned: postnummerregisteret fra Bring og bydelene fra SSB. En pod i FSS når ikke Bring, så de hentes på GitHub-runneren:
+
+```bash
+pnpm run build
+```
+
+Kommandoen skriver `server/data/files/postnrRegister.json` og `bydeler.json` (ikke i git). Feiler nedlastingen eller kontrollen av innholdet, feiler bygget, og forrige image blir stående. Lokalt trenger du bare å kjøre den hvis du vil se de ekte filene; `pnpm run dev` og testene bruker testkopiene.
+
+Filene blir så nye som siste bygg. «Refresh base image and data files» bygger og deployer prod hver søndag kveld, og hver morgen 1.–7. januar og 1.–7. oktober, når Bring og SSB endrer filene. Den kan også kjøres for hånd fra `main`.
 
 ## Prodsetting
 

@@ -4,3 +4,5 @@
 /.github-token
 /nav-office-search-api.iml
 .env
+# Written by `pnpm build`
+/server/data/files/
