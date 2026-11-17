@@ -48,10 +48,17 @@ export const fetchNorgOffices = async (): Promise<NorgOffices> => {
 	// At most OFFICES_AT_A_TIME requests in flight; results are kept by index so the order stays NORG's
 	const areas: Array<string[] | undefined> = new Array(localOffices.length);
 	let next = 0;
+	let failed = false;
 	const worker = async () => {
-		while (next < localOffices.length) {
+		while (!failed && next < localOffices.length) {
 			const index = next++;
-			areas[index] = await areasOf(localOffices[index]!.enhetNr);
+			try {
+				areas[index] = await areasOf(localOffices[index]!.enhetNr);
+			} catch (e) {
+				// Stop the other workers from asking NORG more
+				failed = true;
+				throw e;
+			}
 		}
 	};
 	await Promise.all(Array.from({ length: Math.min(OFFICES_AT_A_TIME, localOffices.length) }, worker));
