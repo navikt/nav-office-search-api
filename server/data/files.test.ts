@@ -21,22 +21,19 @@ test('reads the two files', async () => {
 	const { postnrRegister, bydeler } = await readFiles(fixtures);
 
 	expect(postnrRegister.fetchedAt).toBe('2026-11-17T04:17:00.000Z');
-	expect(postnrRegister.rows).toHaveLength(5);
-	expect(postnrRegister.rows[2]).toEqual({
-		postnr: '1311',
-		poststed: 'HØVIKODDEN',
-		kommunenr: '3201',
-		kommune: 'BÆRUM',
-		kategori: 'G',
+	expect(postnrRegister.skippedLines).toBe(0);
+	expect(postnrRegister.rows).toHaveLength(5136);
+	expect(postnrRegister.rows[0]).toEqual({
+		postnr: '0001',
+		poststed: 'OSLO',
+		kommunenr: '0301',
+		kommune: 'OSLO',
+		kategori: 'P',
 	});
-	expect(bydeler).toEqual({
-		fetchedAt: '2026-11-17T04:17:00.000Z',
-		validFrom: '2020-01-01',
-		bydeler: [
-			{ code: '030101', name: 'Gamle Oslo' },
-			{ code: '030102', name: 'Grünerløkka' },
-		],
-	});
+	expect(bydeler.fetchedAt).toBe('2026-11-17T04:17:00.000Z');
+	expect(bydeler.validFrom).toBe('2020-01-01');
+	expect(bydeler.bydeler).toHaveLength(38);
+	expect(bydeler.bydeler[1]).toEqual({ code: '030102', name: 'Grünerløkka' });
 });
 
 test('reads them from server/data/files unless told otherwise: where the build writes and what the image copies', () => {

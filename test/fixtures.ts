@@ -6,6 +6,10 @@ export const PDL_ORIGIN = 'http://pdl-api.test';
 export const PDL_GRAPHQL_URL = `${PDL_ORIGIN}/graphql`;
 export const PDL_TOKEN_TARGET = 'api://test-fss.pdl.pdl-api/.default';
 export const NAIS_TOKEN_ENDPOINT = 'http://texas.test/api/v1/token';
+export const XP_ORIGIN = 'http://xp.test';
+export const NAVNO_ORIGIN = 'http://navno.test';
+// The two files `pnpm build` downloads, as test/fixtures/README.md describes them
+export const DATA_FILES_DIR = 'test/fixtures/files';
 
 // NORG
 
@@ -59,6 +63,14 @@ export const navkontor = (geografiskOmraade: string, enhetId = 100000001) => ({
 
 export const norgEnhetUrl = `${NORG2_ORIGIN}/norg2/api/v1/enhet`;
 export const norgNavkontorerUrl = (enhetNr: string) => `${norgEnhetUrl}/navkontorer/${enhetNr}`;
+
+// XP
+
+export const xpOfficeInfoUrl = `${XP_ORIGIN}/_/service/no.nav.navno/officeInfo`;
+
+export const xpOfficeInfo = (
+	offices: { path?: string; enhetNr?: string }[] = [{ path: '/kontor/nav-grunerlokka', enhetNr: '0315' }]
+) => ({ offices });
 
 // PDL
 

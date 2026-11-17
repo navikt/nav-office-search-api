@@ -6,6 +6,8 @@ ingresses:
 norg2Origin: https://app-q2.adeo.no
 pdlOrigin: https://pdl-api.intern.dev.nav.no
 pdlTokenTarget: api://dev-fss.pdl.pdl-api/.default
+xpOrigin: https://www.dev.nav.no
+navnoOrigin: https://www.ansatt.dev.nav.no
 # Lets NAIS's token generator make tokens for this app, for trying it out in dev
 tokenxTokenGenerator: true
 replicas:

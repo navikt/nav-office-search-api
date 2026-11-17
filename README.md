@@ -26,7 +26,7 @@ Kjør lokalt (Node kjører TypeScript-koden direkte, uten bygg):
 pnpm run dev
 ```
 
-Appen leser `.env.development`, og `test/mocks/dev.ts` svarer på kallene til NORG, PDL og Texas med testdata, så du trenger ikke naisdevice. Postnummerregisteret og bydelene leses fra små testkopier i `test/fixtures/files`. For å gå mot de ekte tjenestene, sett `MOCKS=false` og de ekte verdiene i skallet (de vinner over filen), for eksempel:
+Appen leser `.env.development`, og `test/mocks/dev.ts` svarer på kallene til NORG, XP, PDL og Texas med testdata, så du trenger ikke naisdevice. Postnummerregisteret og bydelene leses fra `test/fixtures/files`, som hører sammen med testdataene fra NORG og XP (se `test/fixtures/README.md`). For å gå mot de ekte tjenestene, sett `MOCKS=false` og de ekte verdiene i skallet (de vinner over filen), for eksempel:
 
 ```bash
 MOCKS=false NORG2_ORIGIN=https://app-q2.adeo.no PDL_ORIGIN=https://pdl-api.intern.dev.nav.no PDL_DEVELOPMENT_TOKEN=<token> pnpm run dev

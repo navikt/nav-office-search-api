@@ -4,7 +4,7 @@
 
 Hono API (Node.js, TypeScript) that provides office lookup endpoints for a frontend app. It maps geographical IDs and addresses to NAV office information by aggregating data from two external services: NORG (office registry) and PDL (address lookup via GraphQL).
 
-The image also carries two files that the build downloads: Bring's register of every postnummer and SSB's list of bydeler. A pod in FSS can't reach Bring, so they are fetched on the GitHub runner. No endpoint reads them yet; they are the first step of moving the office search's reference data into this service.
+The service also builds the reference data the office search needs: each kommune's and bydel's office, the bydeler, the kommuner and every poststed. It is built at start and every morning from NORG, from XP's list of office pages, and from two files the image carries: Bring's register of every postnummer and SSB's list of bydeler. The build downloads those two, since a pod in FSS can't reach Bring. No endpoint reads the reference data yet, and none waits for it; it is the second step of moving the office search into this service.
 
 Runs on port 3003. Deployed as a Docker container.
 
@@ -20,16 +20,23 @@ build/             what `pnpm build` runs, on the GitHub runner. Not in the imag
   ssb.ts           SSB's bydeler: the version of the classification that is valid now
   http.ts          the client they download with: 30 s per attempt, two retries
 server/
-  main.ts          starts the server: first NORG load, daily refresh, the report on the two files, shutdown
+  main.ts          starts the server: the NORG load and the reference data load, both again every morning; shutdown
   app.ts           the Hono app: mounts the routes, names traces, answers a thrown error with 500
   internal.ts      /internal/isAlive, /internal/isReady, /internal/metrics
   env.ts           the environment, checked with zod at startup
   metrics.ts       business metrics, and countLookup, the middleware that counts a route's lookups
+  schedule.ts      everyMorning: a job at 05:00 UTC, with croner
   upstream.ts      upstreamClient: a corgi client with a timeout that counts its requests; failureOf: what to log
   fetch.ts         fetchJson, which the NORG loader still uses
   data/
+    data.ts        the reference data: loadData (all or nothing), the data in use, refreshData for start and 05:00
+    norg.ts        NORG on corgi: the active local offices and the areas each serves
+    offices.ts     XP's office pages, and NORG's offices joined with them
+    bydeler.ts, kommuner.ts, poststeder.ts   build those from the sources
+    withoutOffice.ts   the areas a load found no office for, for its log and gauges
+    types.ts       the reference data's types, as nav-office-search has them
+    normalizeString.ts  folds a name for comparing; nav-office-search's client has the same
     files.ts       the two downloaded files: where they are, their shapes (zod), and reading them
-    reportFiles.ts logs what they hold at start
     files/         written by `pnpm build`, not in git
   offices/
     offices.ts     the geoId → office map, loaded from NORG
@@ -41,17 +48,19 @@ server/
     token.ts       the token for PDL, from Texas (the NAIS token endpoint)
   *.test.ts        next to the code they test
 test/              test helpers: the app on a free port, the fetch mock, fixtures
-  fixtures/files/  small copies of the two downloaded files, for tests and `pnpm dev`
-  mocks/dev.ts     answers NORG, PDL and Texas from the fixtures in `pnpm dev`
+  fixtures/        a snapshot of NORG, XP and the two data files that fits together (see its README)
+  snapshot.ts      answers NORG and XP from that snapshot
+  mocks/dev.ts     answers NORG, XP, PDL and Texas in `pnpm dev`
 ```
 
 ### Data Flow
 
-0. **Build**: `pnpm build` (`build/main.ts`) downloads Bring's register and SSB's bydeler, checks them (complete rows, at least 2,500 rows and 15 bydeler) and writes `server/data/files/postnrRegister.json` and `bydeler.json`, each with the time it was fetched. A download or a check that fails ends the build, so the previous image keeps running. At startup `reportFiles()` logs `Read the downloaded files` with the counts and fetch times, or `Failed to read the downloaded files`; nothing depends on them yet, so neither readiness nor the endpoints wait for them.
-1. **Startup**: `loadNorgOfficeInfo()` fetches all active local offices from NORG, then for each office fetches its geographical areas. This builds an in-memory `geoIdToEnhetMap` (geoId → `{ enhetNr, navn }`).
-2. **Scheduled refresh**: `node-schedule` re-runs `loadNorgOfficeInfo` daily at 05:00. The server reports not-ready (`503`) until a NORG office-data refresh succeeds.
-3. **Request handling**: Functional endpoints do not perform application-level authentication. The public `-fss-pub.nais.io` ingresses are reachable without credentials; `accessPolicy.inbound` only controls internal service-to-service traffic. Outbound calls to PDL use a machine-to-machine token fetched from the NAIS token endpoint.
-4. **A PDL lookup** (`pdlQuery` in `server/pdl/client.ts`): asks Texas for the token, posts the query, reads the answer's `errors` first and then checks its `data` against the query's zod schema. The token request, the query and a second try share one 4 s deadline (`REQUEST_TIMEOUT_MS`), since nav-office-search gives up after 5 s. Past the deadline the route answers 504; any other failure is 502. When PDL refuses the token (HTTP 401, or a GraphQL error with code `unauthenticated`), the query is tried once more with a token Texas hasn't kept.
+0. **Build**: `pnpm build` (`build/main.ts`) downloads Bring's register and SSB's bydeler, checks them (complete rows, at least 2,500 rows and 15 bydeler) and writes `server/data/files/postnrRegister.json` and `bydeler.json`, each with the time it was fetched. A download or a check that fails ends the build, so the previous image keeps running.
+1. **Reference data**: `refreshData()` (`server/data/data.ts`) runs at start and at 05:00. `loadData()` asks XP for the office pages and NORG for its active local offices and their areas (8 offices at a time), reads the two files, and builds `offices`, `bydeler`, `kommuner` and `poststeder`. It is all or nothing: when a source fails, or a dataset is below its floor (offices 200, bydeler 15, poststeder 2,500, kommuner 150), the load throws, `Loading data failed` is logged and the data in use stays. With no data in use, as after a first load that fails, the load is tried again every minute until one succeeds. A 404 from NORG for one office means it has no areas. Nothing reads the data yet, and neither readiness nor the endpoints wait for it. The NORG loader below still runs beside it, so NORG is asked twice.
+2. **Startup**: `loadNorgOfficeInfo()` fetches all active local offices from NORG, then for each office fetches its geographical areas. This builds an in-memory `geoIdToEnhetMap` (geoId → `{ enhetNr, navn }`).
+3. **Scheduled refresh**: `everyMorning()` (`server/schedule.ts`, croner) re-runs `loadNorgOfficeInfo` and `refreshData` daily at 05:00 UTC, whatever the machine's time zone. A run that throws is logged and the schedule keeps going. The server reports not-ready (`503`) until a NORG office-data refresh succeeds.
+4. **Request handling**: Functional endpoints do not perform application-level authentication. The public `-fss-pub.nais.io` ingresses are reachable without credentials; `accessPolicy.inbound` only controls internal service-to-service traffic. Outbound calls to PDL use a machine-to-machine token fetched from the NAIS token endpoint.
+5. **A PDL lookup** (`pdlQuery` in `server/pdl/client.ts`): asks Texas for the token, posts the query, reads the answer's `errors` first and then checks its `data` against the query's zod schema. The token request, the query and a second try share one 4 s deadline (`REQUEST_TIMEOUT_MS`), since nav-office-search gives up after 5 s. Past the deadline the route answers 504; any other failure is 502. When PDL refuses the token (HTTP 401, or a GraphQL error with code `unauthenticated`), the query is tried once more with a token Texas hasn't kept.
 
 ### Endpoints
 
@@ -68,12 +77,14 @@ Each route module exports its own `Hono` app, which `server/app.ts` mounts with 
 
 ### Caching Strategy
 
+- **Reference data** (`server/data/data.ts`): one module-level object, replaced as a whole by a load that succeeds and never changed in place. `referenceData()` throws before the first load.
 - **geoIdToEnhetMap** (`server/offices/offices.ts`): Module-level variable holding the full office→geoId mapping. Rebuilt entirely on each refresh. On partial fetch failure, previous data for that office is preserved.
 - **PDL access token** (`server/pdl/token.ts`): not kept here. Texas keeps tokens itself and never hands out an expired one, so it is asked for every PDL request. After PDL refuses a token, Texas is asked with `skip_cache: true`, at most once a minute for the whole process, so a PDL that keeps refusing doesn't turn every lookup into a request to Entra ID.
 
 ### External Dependencies (APIs)
 
-- **NORG Enhet API** (`NORG2_ORIGIN`): Office registry. Used to fetch active offices and their geographical areas (`server/offices/offices.ts`).
+- **NORG Enhet API** (`NORG2_ORIGIN`): Office registry. Used to fetch active offices and their geographical areas, by the old loader (`server/offices/offices.ts`) and by the reference data (`server/data/norg.ts`).
+- **XP** (`XP_ORIGIN`): nav.no's CMS. `/_/service/no.nav.navno/officeInfo` lists each office's page (`server/data/offices.ts`). Reached directly from FSS. A page without an `enhetNr` isn't an office's and is left out.
 - **Bring** (`https://www.bring.no/postnummerregister-ansi.txt`) and **SSB** (`https://data.ssb.no/api/klass/v1/classifications/103`): asked by the build only, never by a pod. NAV's gateway blocks Bring for pods in FSS. Bring changes its file for 1 October (the year's postnummer changes, published ahead) and on 1 January (kommune changes); SSB's versions start on a 1 January.
 - **PDL API** (`PDL_ORIGIN`): Persondataløsningen GraphQL API. Used for freetext address search and bydeler via `sokAdresse` (`server/pdl/`). Authenticated with a machine-to-machine Entra ID token for `PDL_TOKEN_TARGET`, obtained from the NAIS token endpoint.
 
@@ -81,16 +92,21 @@ Each route module exports its own `Hono` app, which `server/app.ts` mounts with 
 
 `server/metrics.ts` defines business metrics with `@prometheus-io/client` (the official successor of `prom-client`) on a dedicated registry, exposed at `/internal/metrics` and scraped via `spec.prometheus` in the NAIS manifests. HTTP latency/status is covered by OTel auto-instrumentation and ingress metrics, so app metrics focus on business outcomes:
 
-| Metric                                                      | Type      | Labels                                                                        |
-| ----------------------------------------------------------- | --------- | ----------------------------------------------------------------------------- |
-| `nav_office_search_api_lookups_total`                       | counter   | `operation` = geoid/adresse/bydel, `result` = hits/empty/invalid/error        |
-| `nav_office_search_api_norg_refresh_total`                  | counter   | `result` = success/failure                                                    |
-| `nav_office_search_api_norg_last_success_timestamp_seconds` | gauge     | –                                                                             |
-| `nav_office_search_api_norg_geoids_loaded`                  | gauge     | –                                                                             |
-| `nav_office_search_api_norg_refresh_failed_offices`         | gauge     | – (offices whose areas failed to load in the last refresh; stale data reused) |
-| `nav_office_search_api_upstream_requests_total`             | counter   | `upstream` = pdl/texas, `status` = 2xx/4xx/5xx/…, timeout or network_error    |
-| `nav_office_search_api_upstream_request_duration_seconds`   | histogram | `upstream` (time until the response headers)                                  |
-| `nav_office_search_api_pdl_errors_total`                    | counter   | `code` = PDL's GraphQL error code, or other                                   |
+| Metric                                                      | Type      | Labels                                                                             |
+| ----------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------- |
+| `nav_office_search_api_lookups_total`                       | counter   | `operation` = geoid/adresse/bydel, `result` = hits/empty/invalid/error             |
+| `nav_office_search_api_norg_refresh_total`                  | counter   | `result` = success/failure                                                         |
+| `nav_office_search_api_norg_last_success_timestamp_seconds` | gauge     | –                                                                                  |
+| `nav_office_search_api_norg_geoids_loaded`                  | gauge     | –                                                                                  |
+| `nav_office_search_api_norg_refresh_failed_offices`         | gauge     | – (offices whose areas failed to load in the last refresh; stale data reused)      |
+| `nav_office_search_api_upstream_requests_total`             | counter   | `upstream` = pdl/texas/norg/xp, `status` = 2xx/4xx/5xx/…, timeout or network_error |
+| `nav_office_search_api_upstream_request_duration_seconds`   | histogram | `upstream` (time until the response headers)                                       |
+| `nav_office_search_api_data_loads_total`                    | counter   | `outcome` = success/failure                                                        |
+| `nav_office_search_api_data_last_success_timestamp_seconds` | gauge     | –                                                                                  |
+| `nav_office_search_api_data_load_duration_seconds`          | gauge     | – (the last successful load)                                                       |
+| `nav_office_search_api_reference_data_entries`              | gauge     | `dataset` = office_urls/offices/bydeler/postnr_register/kommuner/poststeder        |
+| `nav_office_search_api_reference_data_without_office`       | gauge     | `dataset` = kommuner/poststeder/bydeler                                            |
+| `nav_office_search_api_pdl_errors_total`                    | counter   | `code` = PDL's GraphQL error code, or other                                        |
 
 The upstream series are for requests made through `upstreamClient()`, and are named as in the frontend. PDL reports some failures as GraphQL errors on HTTP 200, where the upstream counter sees a `2xx`; `pdl_errors_total` counts those, and the errors in an HTTP error's body too.
 
@@ -115,11 +131,13 @@ Don't use `{{ }}` in the alert annotations: nais deploy templates every resource
 - `PDL_ORIGIN` – PDL's origin; the code adds `/graphql`
 - `PDL_TOKEN_TARGET` – the audience of PDL's tokens, e.g. `api://dev-fss.pdl.pdl-api/.default`
 - `NAIS_TOKEN_ENDPOINT` – Texas, NAIS's token service (injected by NAIS)
+- `XP_ORIGIN` – XP's origin; the code adds `/_/service/no.nav.navno/officeInfo`
+- `NAVNO_ORIGIN` – nav.no's origin, which an office's path is joined to
 - `PDL_DEVELOPMENT_TOKEN` – (Optional) a token for PDL instead of asking Texas; for local development
 - `DATA_FILES_DIR` – (Optional) where to read the two downloaded files; for local development and tests. Unset in the image, which has them in `server/data/files`
 - `PORT` – (Optional) defaults to 3003
 
-The first three come from `.nais/vars-*.yml`. Locally, `.env.development` points them at test hosts that `test/mocks/dev.ts` answers, and `DATA_FILES_DIR` at `test/fixtures/files`.
+The first three and the two after Texas come from `.nais/vars-*.yml`. Locally, `.env.development` points them at test hosts that `test/mocks/dev.ts` answers, and `DATA_FILES_DIR` at `test/fixtures/files`.
 
 ## Tech Stack
 
@@ -128,7 +146,7 @@ The first three come from `.nais/vars-*.yml`. Locally, `.env.development` points
 - **Framework**: Hono on `@hono/node-server`
 - **Package manager**: pnpm
 - **Linting and formatting**: ESLint with typescript-eslint; oxfmt (`oxfmt.config.ts`)
-- **Key libraries**: `@itsy/corgi` (outbound HTTP to PDL and Texas, and the build's downloads), `zod` (the environment, upstream answers, the data files), `node-schedule` (cron), `@prometheus-io/client` (metrics), `@navikt/navno-logger` (logging)
+- **Key libraries**: `@itsy/corgi` (outbound HTTP to PDL, Texas, XP and NORG's new loader, and the build's downloads), `ufo` (joining URLs), `zod` (the environment, upstream answers, the data files), `croner` (the two daily jobs), `@prometheus-io/client` (metrics), `@navikt/navno-logger` (logging)
 - **Packages**: `@navikt/*` come from GitHub Packages (`.npmrc`), so installing needs npm authentication for `npm.pkg.github.com`. `pnpm-workspace.yaml` holds new releases back for 3 days (`minimumReleaseAge`), except `@navikt/*` and `@itsy/*`, which the team publishes itself
 
 ## Logging
@@ -140,7 +158,7 @@ Keep the message fixed and put values in fields, so the logs can be searched by 
 ## Build & Run
 
 - `pnpm run build` – Download Bring's register and SSB's bydeler into `server/data/files` (needs the internet). The image needs it; `pnpm dev` and the tests don't
-- `pnpm run dev` – Run `server/main.ts` with `--watch`, offline: it reads `.env.development`, `test/mocks/dev.ts` (loaded with `--import`) answers NORG, PDL and Texas from `test/fixtures.ts`, and the two data files are the copies in `test/fixtures/files`. `MOCKS=false` with real values in the shell goes to the real services
+- `pnpm run dev` – Run `server/main.ts` with `--watch`, offline: it reads `.env.development`, `test/mocks/dev.ts` (loaded with `--import`) answers NORG and XP from the snapshot in `test/fixtures` and PDL and Texas from `test/fixtures.ts`, and the two data files are the snapshot's in `test/fixtures/files`. `MOCKS=false` with real values in the shell goes to the real services
 - `pnpm run start` – Run `server/main.ts`
 - `pnpm run format` – Format with oxfmt
 - `pnpm run lint` – oxfmt check, ESLint, then `tsc --noEmit` over `server/`, `build/`, `test/` and the config files. oxfmt skips `server/data/files`, which is in `.gitignore`

@@ -35,6 +35,10 @@ spec:
       value: {{pdlOrigin}}
     - name: PDL_TOKEN_TARGET
       value: {{pdlTokenTarget}}
+    - name: XP_ORIGIN
+      value: {{xpOrigin}}
+    - name: NAVNO_ORIGIN
+      value: {{navnoOrigin}}
   webproxy: true
   azure:
     application:

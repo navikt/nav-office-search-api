@@ -2,7 +2,15 @@ import { readFileSync } from 'node:fs';
 import { parseEnv as parseEnvFile } from 'node:util';
 import { logger } from '@navikt/navno-logger';
 import { describe, expect, test, vi } from 'vitest';
-import { NAIS_TOKEN_ENDPOINT, NORG2_ORIGIN, PDL_ORIGIN, PDL_TOKEN_TARGET } from '#test/fixtures.ts';
+import {
+	DATA_FILES_DIR,
+	NAIS_TOKEN_ENDPOINT,
+	NAVNO_ORIGIN,
+	NORG2_ORIGIN,
+	PDL_ORIGIN,
+	PDL_TOKEN_TARGET,
+	XP_ORIGIN,
+} from '#test/fixtures.ts';
 import { readFiles } from './data/files.ts';
 import { parseEnv } from './env.ts';
 
@@ -11,6 +19,8 @@ const valid = {
 	PDL_ORIGIN: 'https://pdl-api.test',
 	PDL_TOKEN_TARGET: 'api://test-fss.pdl.pdl-api/.default',
 	NAIS_TOKEN_ENDPOINT: 'http://texas.test/api/v1/token',
+	XP_ORIGIN: 'https://xp.test',
+	NAVNO_ORIGIN: 'https://navno.test',
 };
 
 test('gives back the configuration, and leaves out what the server has no use for', () => {
@@ -66,9 +76,12 @@ test.each(Object.keys(valid))('rejects an empty %s', (name) => {
 	expect(() => parseEnv({ ...valid, [name]: '' })).toThrow(`at ${name}`);
 });
 
-test.each(['NORG2_ORIGIN', 'PDL_ORIGIN', 'NAIS_TOKEN_ENDPOINT'])('requires %s to be a URL', (name) => {
-	expect(() => parseEnv({ ...valid, [name]: 'pdl-api.intern.nav.no' })).toThrow(`at ${name}`);
-});
+test.each(['NORG2_ORIGIN', 'PDL_ORIGIN', 'NAIS_TOKEN_ENDPOINT', 'XP_ORIGIN', 'NAVNO_ORIGIN'])(
+	'requires %s to be a URL',
+	(name) => {
+		expect(() => parseEnv({ ...valid, [name]: 'pdl-api.intern.nav.no' })).toThrow(`at ${name}`);
+	}
+);
 
 test('reports everything wrong at once, by name', () => {
 	expect(() => parseEnv({ ...valid, NORG2_ORIGIN: undefined, PDL_ORIGIN: 'nope' })).toThrow(
@@ -116,7 +129,9 @@ test("`pnpm dev` reads the hosts test/mocks/dev.ts answers and the fixtures' two
 		PDL_ORIGIN,
 		PDL_TOKEN_TARGET,
 		NAIS_TOKEN_ENDPOINT,
-		DATA_FILES_DIR: 'test/fixtures/files',
+		XP_ORIGIN,
+		NAVNO_ORIGIN,
+		DATA_FILES_DIR,
 		PORT: 3003,
 	});
 	await expect(readFiles(config.DATA_FILES_DIR)).resolves.toBeDefined();

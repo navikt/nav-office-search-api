@@ -84,7 +84,7 @@ export const recordNorgRefreshFailure = () => {
 
 // Outbound requests made through upstreamClient() (upstream.ts). Named and labelled as in the nav-office-search
 // frontend, which counts its own the same way.
-export type Upstream = 'pdl' | 'texas';
+export type Upstream = 'pdl' | 'texas' | 'norg' | 'xp';
 
 const upstreamRequestsCounter = new Counter({
 	name: 'nav_office_search_api_upstream_requests_total',
@@ -135,4 +135,63 @@ export const recordPdlErrors = (codes: string[]) => {
 	for (const code of codes) {
 		pdlErrorsCounter.inc({ code: pdlErrorCodes.has(code) ? code : 'other' });
 	}
+};
+
+// The reference data the search will read (data/data.ts). Named as in the nav-office-search frontend, which loads
+// the same data today, so the two can be compared by dataset.
+const dataLoadsCounter = new Counter({
+	name: 'nav_office_search_api_data_loads_total',
+	help: 'Reference data loads (startup and the daily refresh) by outcome: success, or failure when a source failed or the new data was too small. A failed load keeps the data in use.',
+	labelNames: ['outcome'] as const,
+	registers: [metricsRegistry],
+});
+
+dataLoadsCounter.inc({ outcome: 'success' }, 0);
+dataLoadsCounter.inc({ outcome: 'failure' }, 0);
+
+const dataLoadDurationGauge = new Gauge({
+	name: 'nav_office_search_api_data_load_duration_seconds',
+	help: 'Duration of the last successful reference data load',
+	registers: [metricsRegistry],
+});
+
+const dataLastSuccessGauge = new Gauge({
+	name: 'nav_office_search_api_data_last_success_timestamp_seconds',
+	help: 'Unix time of the last successful reference data load',
+	registers: [metricsRegistry],
+});
+
+const referenceDataEntriesGauge = new Gauge({
+	name: 'nav_office_search_api_reference_data_entries',
+	help: 'Entries in the loaded reference data, by dataset',
+	labelNames: ['dataset'] as const,
+	registers: [metricsRegistry],
+});
+
+const referenceDataWithoutOfficeGauge = new Gauge({
+	name: 'nav_office_search_api_reference_data_without_office',
+	help: 'Kommuner, bydeler and poststeder the last load could not find an office for',
+	labelNames: ['dataset'] as const,
+	registers: [metricsRegistry],
+});
+
+export const recordDataLoadSuccess = (
+	durationSeconds: number,
+	entries: Record<string, number>,
+	withoutOffice: Record<string, number>
+) => {
+	dataLoadsCounter.inc({ outcome: 'success' });
+	dataLoadDurationGauge.set(durationSeconds);
+	dataLastSuccessGauge.setToCurrentTime();
+
+	for (const [dataset, count] of Object.entries(entries)) {
+		referenceDataEntriesGauge.set({ dataset }, count);
+	}
+	for (const [dataset, count] of Object.entries(withoutOffice)) {
+		referenceDataWithoutOfficeGauge.set({ dataset }, count);
+	}
+};
+
+export const recordDataLoadFailure = () => {
+	dataLoadsCounter.inc({ outcome: 'failure' });
 };

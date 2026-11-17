@@ -1,5 +1,13 @@
 import { defineConfig } from 'vitest/config';
-import { NAIS_TOKEN_ENDPOINT, NORG2_ORIGIN, PDL_ORIGIN, PDL_TOKEN_TARGET } from './test/fixtures.ts';
+import {
+	DATA_FILES_DIR,
+	NAIS_TOKEN_ENDPOINT,
+	NAVNO_ORIGIN,
+	NORG2_ORIGIN,
+	PDL_ORIGIN,
+	PDL_TOKEN_TARGET,
+	XP_ORIGIN,
+} from './test/fixtures.ts';
 
 export default defineConfig({
 	test: {
@@ -10,6 +18,9 @@ export default defineConfig({
 			PDL_ORIGIN,
 			PDL_TOKEN_TARGET,
 			NAIS_TOKEN_ENDPOINT,
+			XP_ORIGIN,
+			NAVNO_ORIGIN,
+			DATA_FILES_DIR,
 		},
 		// Under Vitest the logger writes through console, so only a failing test's logs are shown
 		silent: 'passed-only',
