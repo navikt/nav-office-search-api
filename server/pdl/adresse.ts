@@ -1,18 +1,54 @@
-import { gql } from 'graphql-request';
 import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import type { ErrorResponse } from '../fetch.ts';
+import { z } from 'zod';
 import { countLookup, type LookupEnv } from '../metrics.ts';
-import type { AdresseResponse, PdlSokAdresseResponse } from './types.ts';
-import { withPdlTokenRetry, pdlRequest } from './client.ts';
+import { type Failure, pdlQuery } from './client.ts';
 
-const queryError = (statusCode: number, message: string): ErrorResponse => ({
+const queryError = (statusCode: number, message: string): Failure => ({
 	error: true,
 	statusCode,
 	message,
 });
 
-const toAdresseResponse = (response: PdlSokAdresseResponse): AdresseResponse => ({
+const sokAdresseQuery = `
+	query sokAdresseFritekstQuery($paging: Paging, $criteria: [Criterion]) {
+		sokAdresse(paging: $paging, criteria: $criteria) {
+			totalHits
+			hits {
+				vegadresse {
+					adressenavn
+					husnummer
+					husbokstav
+					postnummer
+					poststed
+					kommunenummer
+					bydelsnummer
+				}
+			}
+		}
+	}
+`;
+
+const vegadresseSchema = z.object({
+	adressenavn: z.string(),
+	husnummer: z.number().nullable(),
+	husbokstav: z.string().nullable(),
+	postnummer: z.string(),
+	poststed: z.string(),
+	kommunenummer: z.string().nullable(),
+	bydelsnummer: z.string().nullable(),
+});
+
+const sokAdresseSchema = z.object({
+	sokAdresse: z.object({
+		totalHits: z.number(),
+		hits: z.array(z.object({ vegadresse: vegadresseSchema.nullable() })),
+	}),
+});
+
+type SokAdresse = z.infer<typeof sokAdresseSchema>;
+
+const toAdresseResponse = (response: SokAdresse) => ({
 	totalHits: response.sokAdresse.totalHits,
 	adresser: response.sokAdresse.hits.map((h) => h.vegadresse),
 });
@@ -78,31 +114,12 @@ export const validateQueryString = (query: string): QueryValidationResult => {
 	return { query: sanitizedQueryString };
 };
 
-const fetchPdlAdresseSok = async (query: string): Promise<PdlSokAdresseResponse | ErrorResponse> => {
+const fetchPdlAdresseSok = async (query: string): Promise<SokAdresse | Failure> => {
 	const validationResult = validateQueryString(query);
 
 	if ('error' in validationResult) {
 		return queryError(400, validationResult.error);
 	}
-
-	const queryDoc = gql`
-		query sokAdresseFritekstQuery($paging: Paging, $criteria: [Criterion]) {
-			sokAdresse(paging: $paging, criteria: $criteria) {
-				totalHits
-				hits {
-					vegadresse {
-						adressenavn
-						husnummer
-						husbokstav
-						postnummer
-						poststed
-						kommunenummer
-						bydelsnummer
-					}
-				}
-			}
-		}
-	`;
 
 	const criteria = splitAddressIntoParts(validationResult.query).map(buildQuerySegment);
 
@@ -114,7 +131,7 @@ const fetchPdlAdresseSok = async (query: string): Promise<PdlSokAdresseResponse 
 		criteria,
 	};
 
-	return withPdlTokenRetry((token) => pdlRequest<PdlSokAdresseResponse>(token, queryDoc, queryVariables));
+	return pdlQuery(sokAdresseQuery, queryVariables, sokAdresseSchema);
 };
 
 export const adresse = new Hono<LookupEnv>().get('/', countLookup('adresse'), async (c) => {

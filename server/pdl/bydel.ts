@@ -1,35 +1,42 @@
-import { gql } from 'graphql-request';
 import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import type { ErrorResponse } from '../fetch.ts';
+import { z } from 'zod';
 import { countLookup, type LookupEnv } from '../metrics.ts';
-import type { BydelerResponse, PdlSokBydelResponse } from './types.ts';
-import { withPdlTokenRetry, pdlRequest } from './client.ts';
+import { type Failure, pdlQuery } from './client.ts';
 
 export const sanitizePostnummer = (postnummer: string): string | null => {
 	const sanitized = postnummer.trim();
 	return /^\d{4}$/.test(sanitized) ? sanitized : null;
 };
 
-const toBydelerResponse = (response: PdlSokBydelResponse): BydelerResponse => {
+const sokBydelQuery = `
+	query sokAdresseAggregeringQuery($paging: Paging, $criteria: [Criterion], $aggregations: [Aggregation]) {
+		sokAdresse(paging: $paging, criteria: $criteria, aggregations: $aggregations) {
+			aggregations {
+				fieldName
+				values {
+					value
+				}
+			}
+		}
+	}
+`;
+
+// The bydelsnumre of a postnummer's addresses, as an aggregation: its values are the numbers
+const sokBydelSchema = z.object({
+	sokAdresse: z.object({
+		aggregations: z.array(z.object({ fieldName: z.string(), values: z.array(z.object({ value: z.string() })) })),
+	}),
+});
+
+type SokBydel = z.infer<typeof sokBydelSchema>;
+
+const toBydelerResponse = (response: SokBydel) => {
 	const bydelAgg = response.sokAdresse.aggregations.find((a) => a.fieldName === 'vegadresse.bydelsnummer');
 	return { bydeler: bydelAgg?.values.map((v) => v.value) ?? [] };
 };
 
-const fetchPdlBydelSok = async (postnummer: string): Promise<PdlSokBydelResponse | ErrorResponse> => {
-	const queryDoc = gql`
-		query sokAdresseAggregeringQuery($paging: Paging, $criteria: [Criterion], $aggregations: [Aggregation]) {
-			sokAdresse(paging: $paging, criteria: $criteria, aggregations: $aggregations) {
-				aggregations {
-					fieldName
-					values {
-						value
-					}
-				}
-			}
-		}
-	`;
-
+const fetchPdlBydelSok = async (postnummer: string): Promise<SokBydel | Failure> => {
 	const queryVariables = {
 		paging: {
 			pageNumber: 1,
@@ -45,15 +52,12 @@ const fetchPdlBydelSok = async (postnummer: string): Promise<PdlSokBydelResponse
 		],
 		aggregations: [
 			{
-				fieldName: 'vegadresse.kommunenummer',
-			},
-			{
 				fieldName: 'vegadresse.bydelsnummer',
 			},
 		],
 	};
 
-	return withPdlTokenRetry((token) => pdlRequest<PdlSokBydelResponse>(token, queryDoc, queryVariables));
+	return pdlQuery(sokBydelQuery, queryVariables, sokBydelSchema);
 };
 
 export const bydel = new Hono<LookupEnv>().get('/', countLookup('bydel'), async (c) => {

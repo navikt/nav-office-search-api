@@ -1,4 +1,5 @@
-import { Counter, Gauge, Registry } from '@prometheus-io/client';
+import { isTimeoutError } from '@itsy/corgi';
+import { Counter, Gauge, Histogram, Registry } from '@prometheus-io/client';
 import { createMiddleware } from 'hono/factory';
 
 // Dedicated registry (not the global default) so only our business metrics
@@ -79,4 +80,59 @@ export const recordNorgRefreshSuccess = (geoIdsLoaded: number, failedOffices: nu
 
 export const recordNorgRefreshFailure = () => {
 	norgRefreshCounter.inc({ result: 'failure' });
+};
+
+// Outbound requests made through upstreamClient() (upstream.ts). Named and labelled as in the nav-office-search
+// frontend, which counts its own the same way.
+export type Upstream = 'pdl' | 'texas';
+
+const upstreamRequestsCounter = new Counter({
+	name: 'nav_office_search_api_upstream_requests_total',
+	help: 'Outbound requests by upstream and response status class (2xx, 4xx, 5xx, …), timeout or network_error',
+	labelNames: ['upstream', 'status'] as const,
+	registers: [metricsRegistry],
+});
+
+const upstreamDurationHistogram = new Histogram({
+	name: 'nav_office_search_api_upstream_request_duration_seconds',
+	help: 'Outbound request time until response headers, by upstream',
+	labelNames: ['upstream'] as const,
+	buckets: [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30],
+	registers: [metricsRegistry],
+});
+
+// Runs an outbound request and records its status class and how long the answer took. A request that never got an
+// answer counts as a timeout or a network_error.
+export const observeUpstream = async (upstream: Upstream, request: () => Promise<Response>) => {
+	const stopTimer = upstreamDurationHistogram.startTimer({ upstream });
+	try {
+		const response = await request();
+		upstreamRequestsCounter.inc({ upstream, status: `${Math.floor(response.status / 100)}xx` });
+		return response;
+	} catch (e) {
+		upstreamRequestsCounter.inc({ upstream, status: isTimeoutError(e) ? 'timeout' : 'network_error' });
+		throw e;
+	} finally {
+		stopTimer();
+	}
+};
+
+// The codes PDL gives its GraphQL errors. One it adds later is counted as other.
+const pdlErrorCodes = new Set(['unauthenticated', 'unauthorized', 'not_found', 'bad_request', 'server_error']);
+
+const pdlErrorsCounter = new Counter({
+	name: 'nav_office_search_api_pdl_errors_total',
+	help: "GraphQL errors in PDL's answers, by PDL's error code. PDL reports some failures on HTTP 200",
+	labelNames: ['code'] as const,
+	registers: [metricsRegistry],
+});
+
+for (const code of [...pdlErrorCodes, 'other']) {
+	pdlErrorsCounter.inc({ code }, 0);
+}
+
+export const recordPdlErrors = (codes: string[]) => {
+	for (const code of codes) {
+		pdlErrorsCounter.inc({ code: pdlErrorCodes.has(code) ? code : 'other' });
+	}
 };
