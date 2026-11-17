@@ -4,6 +4,8 @@
 
 Hono API (Node.js, TypeScript) that provides office lookup endpoints for a frontend app. It maps geographical IDs and addresses to NAV office information by aggregating data from two external services: NORG (office registry) and PDL (address lookup via GraphQL).
 
+The image also carries two files that the build downloads: Bring's register of every postnummer and SSB's list of bydeler. A pod in FSS can't reach Bring, so they are fetched on the GitHub runner. No endpoint reads them yet; they are the first step of moving the office search's reference data into this service.
+
 Runs on port 3003. Deployed as a Docker container.
 
 ## Architecture
@@ -11,13 +13,23 @@ Runs on port 3003. Deployed as a Docker container.
 ### Layout
 
 ```
+build/             what `pnpm build` runs, on the GitHub runner. Not in the image
+  main.ts          downloads the two files, or ends the build with the error
+  download.ts      fetches both, checks them, writes them to server/data/files
+  bring.ts         Bring's postnummer register: its address, encoding and rows
+  ssb.ts           SSB's bydeler: the version of the classification that is valid now
+  http.ts          the client they download with: 30 s per attempt, two retries
 server/
-  main.ts          starts the server: first NORG load, daily refresh, shutdown
+  main.ts          starts the server: first NORG load, daily refresh, the report on the two files, shutdown
   app.ts           the Hono app: mounts the routes, names traces, answers a thrown error with 500
   internal.ts      /internal/isAlive, /internal/isReady, /internal/metrics
   env.ts           the environment, checked with zod at startup
   metrics.ts       business metrics, and countLookup, the middleware that counts a route's lookups
   fetch.ts         fetchJson (NORG) and the ErrorResponse type
+  data/
+    files.ts       the two downloaded files: where they are, their shapes (zod), and reading them
+    reportFiles.ts logs what they hold at start
+    files/         written by `pnpm build`, not in git
   offices/
     offices.ts     the geoId → office map, loaded from NORG
     route.ts       GET /geoid
@@ -29,11 +41,13 @@ server/
     types.ts       PDL's answers and ours
   *.test.ts        next to the code they test
 test/              test helpers: the app on a free port, the fetch mock, fixtures
+  fixtures/files/  small copies of the two downloaded files, for tests and `pnpm dev`
   mocks/dev.ts     answers NORG, PDL and Texas from the fixtures in `pnpm dev`
 ```
 
 ### Data Flow
 
+0. **Build**: `pnpm build` (`build/main.ts`) downloads Bring's register and SSB's bydeler, checks them (complete rows, at least 2,500 rows and 15 bydeler) and writes `server/data/files/postnrRegister.json` and `bydeler.json`, each with the time it was fetched. A download or a check that fails ends the build, so the previous image keeps running. At startup `reportFiles()` logs `Read the downloaded files` with the counts and fetch times, or `Failed to read the downloaded files`; nothing depends on them yet, so neither readiness nor the endpoints wait for them.
 1. **Startup**: `loadNorgOfficeInfo()` fetches all active local offices from NORG, then for each office fetches its geographical areas. This builds an in-memory `geoIdToEnhetMap` (geoId → `{ enhetNr, navn }`).
 2. **Scheduled refresh**: `node-schedule` re-runs `loadNorgOfficeInfo` daily at 05:00. The server reports not-ready (`503`) until a NORG office-data refresh succeeds.
 3. **Request handling**: Functional endpoints do not perform application-level authentication. The public `-fss-pub.nais.io` ingresses are reachable without credentials; `accessPolicy.inbound` only controls internal service-to-service traffic. Outbound calls to PDL use a machine-to-machine token fetched from the NAIS token endpoint.
@@ -59,6 +73,7 @@ Each route module exports its own `Hono` app, which `server/app.ts` mounts with 
 ### External Dependencies (APIs)
 
 - **NORG Enhet API** (`NORG2_ORIGIN`): Office registry. Used to fetch active offices and their geographical areas (`server/offices/offices.ts`).
+- **Bring** (`https://www.bring.no/postnummerregister-ansi.txt`) and **SSB** (`https://data.ssb.no/api/klass/v1/classifications/103`): asked by the build only, never by a pod. NAV's gateway blocks Bring for pods in FSS. Bring changes its file for 1 October (the year's postnummer changes, published ahead) and on 1 January (kommune changes); SSB's versions start on a 1 January.
 - **PDL API** (`PDL_ORIGIN`): Persondataløsningen GraphQL API. Used for freetext address search and bydeler via `sokAdresse` (`server/pdl/`). Authenticated with a machine-to-machine Entra ID token for `PDL_TOKEN_TARGET`, obtained from the NAIS token endpoint.
 
 ## Metrics
@@ -95,13 +110,14 @@ Don't use `{{ }}` in the alert annotations: nais deploy templates every resource
 - `PDL_TOKEN_TARGET` – the audience of PDL's tokens, e.g. `api://dev-fss.pdl.pdl-api/.default`
 - `NAIS_TOKEN_ENDPOINT` – Texas, NAIS's token service (injected by NAIS)
 - `PDL_DEVELOPMENT_TOKEN` – (Optional) a token for PDL instead of asking Texas; for local development
+- `DATA_FILES_DIR` – (Optional) where to read the two downloaded files; for local development and tests. Unset in the image, which has them in `server/data/files`
 - `PORT` – (Optional) defaults to 3003
 
-The first three come from `.nais/vars-*.yml`. Locally, `.env.development` points them at test hosts that `test/mocks/dev.ts` answers.
+The first three come from `.nais/vars-*.yml`. Locally, `.env.development` points them at test hosts that `test/mocks/dev.ts` answers, and `DATA_FILES_DIR` at `test/fixtures/files`.
 
 ## Tech Stack
 
-- **Runtime**: Node.js with ES modules (`"type": "module"`). Node runs the TypeScript directly and strips the types; there is no build step
+- **Runtime**: Node.js with ES modules (`"type": "module"`). Node runs the TypeScript directly and strips the types; nothing is compiled. `pnpm build` only downloads the two data files
 - **Language**: TypeScript (strict mode, nodenext module resolution)
 - **Framework**: Hono on `@hono/node-server`
 - **Package manager**: pnpm
@@ -117,11 +133,12 @@ Keep the message fixed and put values in fields, so the logs can be searched by 
 
 ## Build & Run
 
-- `pnpm run dev` – Run `server/main.ts` with `--watch`, offline: it reads `.env.development`, and `test/mocks/dev.ts` (loaded with `--import`) answers NORG, PDL and Texas from `test/fixtures.ts`. `MOCKS=false` with real values in the shell goes to the real services
+- `pnpm run build` – Download Bring's register and SSB's bydeler into `server/data/files` (needs the internet). The image needs it; `pnpm dev` and the tests don't
+- `pnpm run dev` – Run `server/main.ts` with `--watch`, offline: it reads `.env.development`, `test/mocks/dev.ts` (loaded with `--import`) answers NORG, PDL and Texas from `test/fixtures.ts`, and the two data files are the copies in `test/fixtures/files`. `MOCKS=false` with real values in the shell goes to the real services
 - `pnpm run start` – Run `server/main.ts`
 - `pnpm run format` – Format with oxfmt
-- `pnpm run lint` – oxfmt check, ESLint, then `tsc --noEmit` over `server/`, `test/` and the config files
-- `pnpm run test` – Vitest on the TypeScript source. Each test starts a fresh copy of the app on a free port (`test/app.ts`) and asks it over HTTP; NORG, PDL and Texas are answered by corgi's `mockFetch` (`test/fetch.ts`, `test/fixtures.ts`). A test file sits next to the code it tests. Today's wrong behaviour is pinned in tests named `(bug)`
+- `pnpm run lint` – oxfmt check, ESLint, then `tsc --noEmit` over `server/`, `build/`, `test/` and the config files. oxfmt skips `server/data/files`, which is in `.gitignore`
+- `pnpm run test` – Vitest on the TypeScript source. Each test starts a fresh copy of the app on a free port (`test/app.ts`) and asks it over HTTP; NORG, PDL and Texas are answered by corgi's `mockFetch` (`test/fetch.ts`, `test/fixtures.ts`). A test file sits next to the code it tests, in `build/` too, where Bring and SSB are answered the same way. Today's wrong behaviour is pinned in tests named `(bug)`
 
 ## Deployment
 
@@ -152,10 +169,10 @@ Key settings:
 
 - **Build and deploy to prod** (`build-deploy-prod.yml`): Reusable workflow (`workflow_call`) shared by the two below. Builds, pushes Docker image, deploys the app and then `.nais/alerts.yml` to `prod-fss`.
 - **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Runs `build-deploy-prod.yml`, then creates a GitHub Release with auto-generated release notes.
-- **Refresh base image** (`base-image-refresh.yml`): Sundays 23:17 Oslo time, or manually from `main`. Runs `build-deploy-prod.yml` so prod gets the newest base image. No release.
+- **Refresh base image and data files** (`base-image-refresh.yml`): Sundays 23:17 Oslo time, daily at 05:17 on 1-7 January and 1-7 October, or manually from `main`. Runs `build-deploy-prod.yml`, so prod gets the newest base image and Bring's and SSB's files as they are that day. The January and October weeks are when those files change; a week of days, because neither source says at what hour and GitHub can drop a scheduled run. No release.
 - **Deploy to dev** (`deploy.dev.yml`): Manual trigger only (`workflow_dispatch`).
 - **Test pull request** (`pr-test.yml`): Runs lint and tests for pull requests.
-- All workflows use the reusable workflows in `navikt/navno-ci` (`node-build.yml`, `nais-deploy.yml`, `release.yml`, `dependabot-lockfile.yml`), which are built on `navikt/navno-actions`. The build runs: pnpm install → lint → test (there is no `build` script, so that step is skipped) → reinstall production dependencies → Docker build+push of `package.json`, `node_modules` and `server/` (`.dockerignore` keeps the tests out); then `nais-deploy.yml` deploys. Node version comes from `engines.node` in package.json.
+- All workflows use the reusable workflows in `navikt/navno-ci` (`node-build.yml`, `nais-deploy.yml`, `release.yml`, `dependabot-lockfile.yml`), which are built on `navikt/navno-actions`. The build runs: pnpm install → `pnpm run build` (downloads the two data files; pull request checks and Deploy to dev do it too, so every build needs Bring and SSB to answer) → lint → test → reinstall production dependencies → Docker build+push of `package.json`, `node_modules` and `server/`, which now holds the two files (`.dockerignore` keeps the tests out); then `nais-deploy.yml` deploys. Node version comes from `engines.node` in package.json.
 
 ## Conventions
 

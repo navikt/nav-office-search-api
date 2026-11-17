@@ -10,8 +10,10 @@ const schema = z.object({
 	PDL_TOKEN_TARGET: z.string().min(1),
 	// Texas, NAIS's token service. NAIS injects it for azure.application
 	NAIS_TOKEN_ENDPOINT: z.url(),
-	// Locally, a token for PDL instead of asking Texas
+	// A token for PDL to use locally instead of asking Texas
 	PDL_DEVELOPMENT_TOKEN: z.string().min(1).optional(),
+	// Where to read the two files locally that `pnpm build` downloads. This is unset in the image, which has them in server/data/files
+	DATA_FILES_DIR: z.string().min(1).optional(),
 	PORT: z.coerce.number().int().positive().default(3003),
 });
 

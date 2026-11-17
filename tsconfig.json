@@ -1,4 +1,4 @@
-// Type-check only (`pnpm lint`): Node runs the TypeScript in server/ directly, stripping the types
+// Type-check only (`pnpm lint`): Node runs the TypeScript in server/ and build/ directly, stripping the types
 {
 	"compilerOptions": {
 		"target": "es2024",
@@ -15,5 +15,5 @@
 		"allowImportingTsExtensions": true,
 		"resolveJsonModule": true
 	},
-	"include": ["server/**/*.ts", "test/**/*.ts", "*.config.ts"]
+	"include": ["server/**/*.ts", "build/**/*.ts", "test/**/*.ts", "*.config.ts"]
 }

@@ -3,7 +3,7 @@ import { NAIS_TOKEN_ENDPOINT, NORG2_ORIGIN, PDL_ORIGIN, PDL_TOKEN_TARGET } from 
 
 export default defineConfig({
 	test: {
-		include: ['server/**/*.test.ts', 'test/**/*.test.ts'],
+		include: ['server/**/*.test.ts', 'build/**/*.test.ts', 'test/**/*.test.ts'],
 		env: {
 			// server/env.ts reads these when the app's modules load; test/app.ts loads fresh ones for every test
 			NORG2_ORIGIN,

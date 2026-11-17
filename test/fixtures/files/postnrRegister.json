@@ -1,0 +1,11 @@
+{
+	"fetchedAt": "2026-11-17T04:17:00.000Z",
+	"skippedLines": 0,
+	"rows": [
+		{ "postnr": "0184", "poststed": "OSLO", "kommunenr": "0301", "kommune": "OSLO", "kategori": "G" },
+		{ "postnr": "0550", "poststed": "OSLO", "kommunenr": "0301", "kommune": "OSLO", "kategori": "G" },
+		{ "postnr": "1311", "poststed": "HØVIKODDEN", "kommunenr": "3201", "kommune": "BÆRUM", "kategori": "G" },
+		{ "postnr": "8099", "poststed": "JAN MAYEN", "kommunenr": "2211", "kommune": "JAN MAYEN", "kategori": "P" },
+		{ "postnr": "9170", "poststed": "LONGYEARBYEN", "kommunenr": "2100", "kommune": "SVALBARD", "kategori": "G" }
+	]
+}

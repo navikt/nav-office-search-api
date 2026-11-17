@@ -8,6 +8,7 @@
 		"#test/*": "./test/*"
 	},
 	"scripts": {
+		"build": "node build/main.ts",
 		"dev": "node --env-file=.env.development --import ./test/mocks/dev.ts --watch server/main.ts",
 		"format": "oxfmt",
 		"lint": "oxfmt --check && eslint . && tsc --noEmit",

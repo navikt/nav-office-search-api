@@ -1,4 +1,5 @@
-// NORG, PDL and Texas answers in their wire shape, and the hosts the tests point the app at
+// NORG, PDL and Texas answers in their wire shape, and the hosts the tests point the app at. At the end, SSB's and
+// Bring's answers to the build's download.
 
 export const NORG2_ORIGIN = 'http://norg2.test';
 export const PDL_ORIGIN = 'http://pdl-api.test';
@@ -113,4 +114,68 @@ export const texasToken = (accessToken = 'texas-token', expiresIn = 3599) => ({
 	access_token: accessToken,
 	expires_in: expiresIn,
 	token_type: 'Bearer',
+});
+
+// SSB, as the build asks it
+
+export const ssbClassificationUrl = 'https://data.ssb.no/api/klass/v1/classifications/103';
+export const ssbVersionUrl = (id: number) => `https://data.ssb.no/api/klass/v1/versions/${id}`;
+
+// A version as the classification lists it. The one that is valid now has no validTo.
+export const ssbVersionRef = (id: number, validFrom: string, validTo?: string) => ({
+	name: `Bydelsinndeling ${validFrom.slice(0, 4)}`,
+	id,
+	validFrom,
+	...(validTo ? { validTo } : {}),
+	lastModified: '2022-04-19T12:49:20.000+0000',
+	published: ['nb', 'nn', 'en'],
+	_links: { self: { href: ssbVersionUrl(id) } },
+});
+
+export const ssbClassification = (
+	versions = [ssbVersionRef(919, '2018-01-01', '2020-01-01'), ssbVersionRef(1168, '2020-01-01')]
+) => ({
+	name: 'Standard for bydelsinndeling',
+	id: 103,
+	classificationType: 'Klassifikasjon',
+	lastModified: '2026-01-07T07:31:55.000+0000',
+	versions,
+	_links: { self: { href: ssbClassificationUrl } },
+});
+
+export const ssbBydel = (code: string, name: string) => ({
+	code,
+	parentCode: '',
+	level: '1',
+	name,
+	shortName: null,
+	notes: null,
+});
+
+export const ssbVersion = (
+	classificationItems = [ssbBydel('030102', 'Grünerløkka'), ssbBydel('030199', 'Uoppgitt')]
+) => ({
+	name: 'Bydelsinndeling 2020',
+	id: 1168,
+	validFrom: '2020-01-01',
+	lastModified: '2022-04-19T12:49:20.000+0000',
+	published: ['nb', 'nn', 'en'],
+	classificationItems,
+	_links: { self: { href: ssbVersionUrl(1168) } },
+});
+
+// Bring, as the build asks it
+
+export const bringRegisterUrl = 'https://www.bring.no/postnummerregister-ansi.txt';
+
+// The register as Bring sends it: tab separated rows in windows-1252, each ended by a newline
+export const bringRegister = (
+	rows = [
+		['0184', 'OSLO', '0301', 'OSLO', 'G'],
+		['1311', 'HØVIKODDEN', '3201', 'BÆRUM', 'G'],
+	]
+) => ({
+	status: 200,
+	headers: { 'content-type': 'text/plain' },
+	body: Buffer.from(rows.map((row) => `${row.join('\t')}\n`).join(''), 'latin1'),
 });

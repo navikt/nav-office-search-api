@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { logger } from '@navikt/navno-logger';
 import schedule from 'node-schedule';
 import { createApp } from './app.ts';
+import { reportFiles } from './data/reportFiles.ts';
 import { env } from './env.ts';
 import { loadNorgOfficeInfo } from './offices/offices.ts';
 
@@ -19,6 +20,7 @@ const refreshOfficeData = async () => {
 const server = serve({ fetch: app.fetch, port: appPort, overrideGlobalObjects: false }, () => {
 	void refreshOfficeData();
 	schedule.scheduleJob({ hour: 5, minute: 0, second: 0 }, refreshOfficeData);
+	void reportFiles();
 
 	logger.info('Server listening', { port: appPort });
 });

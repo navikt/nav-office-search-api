@@ -1,8 +1,14 @@
-# Rebuilds and redeploys prod weekly so the image gets the newest base image.
-name: Refresh base image
+# Rebuilds and redeploys prod, so the image gets the newest base image and Bring's and SSB's files as they are that
+# day. The build downloads those two files, and a pod can't fetch them itself.
+name: Refresh base image and data files
 on:
   schedule:
-    - cron: '17 23 * * 0' # Sunday 23:17, off the hour due to quirks with GitHub scheduling
+    - cron: '17 23 * * 0' # Every Sunday at 23:17
+      timezone: Europe/Oslo
+    # Also run when our key files change, they don't say exactly when, so we just rebuild more often.
+    - cron: '17 5 1-7 1 *' # 1-7 January at 05:17: kommune changes in Bring's register, and a new version of SSB's bydeler
+      timezone: Europe/Oslo
+    - cron: '17 5 1-7 10 *' # 1-7 October at 05:17: the year's postnummer changes in Bring's register
       timezone: Europe/Oslo
   workflow_dispatch:
 
