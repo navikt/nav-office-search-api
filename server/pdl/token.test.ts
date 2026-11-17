@@ -1,4 +1,5 @@
 import { networkError } from '@itsy/corgi/testing';
+import { logger } from '@navikt/navno-logger';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { startApp } from '#test/app.ts';
 import { installMockFetch } from '#test/fetch.ts';
@@ -26,35 +27,30 @@ describe('the token for PDL', () => {
 		expect(http.lastCall?.headers.get('authorization')).toBe('Bearer texas-token');
 	});
 
-	test('reuses the token until 60 s before it expires', async () => {
-		vi.useFakeTimers({ toFake: ['Date'] });
-		http.post(NAIS_TOKEN_ENDPOINT, [{ json: texasToken('token-1', 3600) }, { json: texasToken('token-2', 3600) }]);
+	test('asks Texas for every PDL request, since Texas keeps the token itself', async () => {
+		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken() });
 		pdlAnswers();
 		const app = await startApp();
 
 		await app.get('/bydel?postnummer=0150');
-		vi.advanceTimersByTime(3539 * 1000);
 		await app.get('/bydel?postnummer=0150');
-		expect(http.callsTo(NAIS_TOKEN_ENDPOINT)).toHaveLength(1);
+		await app.get('/bydel?postnummer=0150');
 
-		vi.advanceTimersByTime(2 * 1000);
-		await app.get('/bydel?postnummer=0150');
-		expect(http.callsTo(NAIS_TOKEN_ENDPOINT)).toHaveLength(2);
-		expect(http.lastCall?.headers.get('authorization')).toBe('Bearer token-2');
+		expect(http.callsTo(NAIS_TOKEN_ENDPOINT)).toHaveLength(3);
 	});
 
-	test('keeps a token that expires within 60 s forever (bug)', async () => {
+	test('uses the token Texas has now, not one from before that has expired', async () => {
 		vi.useFakeTimers({ toFake: ['Date'] });
-		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken('token-1', 60) });
+		http.post(NAIS_TOKEN_ENDPOINT, [{ json: texasToken('token-1', 60) }, { json: texasToken('token-2', 3600) }]);
 		pdlAnswers();
 		const app = await startApp();
 
 		await app.get('/bydel?postnummer=0150');
+		expect(http.lastCall?.headers.get('authorization')).toBe('Bearer token-1');
+
 		vi.advanceTimersByTime(24 * 60 * 60 * 1000);
 		await app.get('/bydel?postnummer=0150');
-
-		expect(http.callsTo(NAIS_TOKEN_ENDPOINT)).toHaveLength(1);
-		expect(http.lastCall?.headers.get('authorization')).toBe('Bearer token-1');
+		expect(http.lastCall?.headers.get('authorization')).toBe('Bearer token-2');
 	});
 
 	test('uses PDL_DEVELOPMENT_TOKEN instead of Texas when it is set', async () => {
@@ -70,6 +66,7 @@ describe('the token for PDL', () => {
 
 	test.each([
 		['answers an error', { status: 500, json: { error: 'server_error' } }],
+		['answers something that is not a token', { json: { error: 'invalid_request' } }],
 		['is unreachable', networkError()],
 	])('answers 502 without asking PDL when Texas %s', async (_, reply) => {
 		http.post(NAIS_TOKEN_ENDPOINT, reply);
@@ -80,5 +77,15 @@ describe('the token for PDL', () => {
 		expect(res.status).toBe(502);
 		expect(await res.json()).toEqual({ error: 'PDL request failed' });
 		expect(http.callsTo(PDL_GRAPHQL_URL)).toHaveLength(0);
+	});
+
+	test('says in the log that it was the token that failed, and how', async () => {
+		const error = vi.spyOn(logger, 'error');
+		http.post(NAIS_TOKEN_ENDPOINT, { status: 500, json: { error: 'server_error' } });
+		const app = await startApp();
+
+		await app.get('/bydel?postnummer=0150');
+
+		expect(error.mock.calls).toEqual([['Token request for PDL failed', { status: 500 }]]);
 	});
 });

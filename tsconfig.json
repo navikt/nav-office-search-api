@@ -2,7 +2,7 @@
 {
 	"compilerOptions": {
 		"target": "es2024",
-		// dom: fetch.ts and pdl/token.ts read fetch's types from it, until PR 11
+		// dom: fetch.ts reads fetch's types from it, until the old NORG loader goes
 		"lib": ["es2024", "dom"],
 		"module": "nodenext",
 		"moduleResolution": "nodenext",

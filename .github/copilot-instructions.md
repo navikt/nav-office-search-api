@@ -25,7 +25,8 @@ server/
   internal.ts      /internal/isAlive, /internal/isReady, /internal/metrics
   env.ts           the environment, checked with zod at startup
   metrics.ts       business metrics, and countLookup, the middleware that counts a route's lookups
-  fetch.ts         fetchJson (NORG) and the ErrorResponse type
+  upstream.ts      upstreamClient: a corgi client with a timeout that counts its requests; failureOf: what to log
+  fetch.ts         fetchJson, which the NORG loader still uses
   data/
     files.ts       the two downloaded files: where they are, their shapes (zod), and reading them
     reportFiles.ts logs what they hold at start
@@ -36,9 +37,8 @@ server/
   pdl/
     adresse.ts     GET /adresse
     bydel.ts       GET /bydel
-    client.ts      PDL GraphQL requests, the retry after a 401
-    token.ts       the token for PDL from the NAIS token endpoint
-    types.ts       PDL's answers and ours
+    client.ts      pdlQuery: one GraphQL query to PDL, with its token, deadline, errors and second try
+    token.ts       the token for PDL, from Texas (the NAIS token endpoint)
   *.test.ts        next to the code they test
 test/              test helpers: the app on a free port, the fetch mock, fixtures
   fixtures/files/  small copies of the two downloaded files, for tests and `pnpm dev`
@@ -51,6 +51,7 @@ test/              test helpers: the app on a free port, the fetch mock, fixture
 1. **Startup**: `loadNorgOfficeInfo()` fetches all active local offices from NORG, then for each office fetches its geographical areas. This builds an in-memory `geoIdToEnhetMap` (geoId → `{ enhetNr, navn }`).
 2. **Scheduled refresh**: `node-schedule` re-runs `loadNorgOfficeInfo` daily at 05:00. The server reports not-ready (`503`) until a NORG office-data refresh succeeds.
 3. **Request handling**: Functional endpoints do not perform application-level authentication. The public `-fss-pub.nais.io` ingresses are reachable without credentials; `accessPolicy.inbound` only controls internal service-to-service traffic. Outbound calls to PDL use a machine-to-machine token fetched from the NAIS token endpoint.
+4. **A PDL lookup** (`pdlQuery` in `server/pdl/client.ts`): asks Texas for the token, posts the query, reads the answer's `errors` first and then checks its `data` against the query's zod schema. The token request, the query and a second try share one 4 s deadline (`REQUEST_TIMEOUT_MS`), since nav-office-search gives up after 5 s. Past the deadline the route answers 504; any other failure is 502. When PDL refuses the token (HTTP 401, or a GraphQL error with code `unauthenticated`), the query is tried once more with a token Texas hasn't kept.
 
 ### Endpoints
 
@@ -68,7 +69,7 @@ Each route module exports its own `Hono` app, which `server/app.ts` mounts with 
 ### Caching Strategy
 
 - **geoIdToEnhetMap** (`server/offices/offices.ts`): Module-level variable holding the full office→geoId mapping. Rebuilt entirely on each refresh. On partial fetch failure, previous data for that office is preserved.
-- **PDL access token** (`server/pdl/token.ts`): `node-cache` with TTL derived from token expiry (minus 60s buffer). Invalidated and refreshed automatically on 401 from PDL.
+- **PDL access token** (`server/pdl/token.ts`): not kept here. Texas keeps tokens itself and never hands out an expired one, so it is asked for every PDL request. After PDL refuses a token, Texas is asked with `skip_cache: true`, at most once a minute for the whole process, so a PDL that keeps refusing doesn't turn every lookup into a request to Entra ID.
 
 ### External Dependencies (APIs)
 
@@ -80,13 +81,18 @@ Each route module exports its own `Hono` app, which `server/app.ts` mounts with 
 
 `server/metrics.ts` defines business metrics with `@prometheus-io/client` (the official successor of `prom-client`) on a dedicated registry, exposed at `/internal/metrics` and scraped via `spec.prometheus` in the NAIS manifests. HTTP latency/status is covered by OTel auto-instrumentation and ingress metrics, so app metrics focus on business outcomes:
 
-| Metric                                                      | Type    | Labels                                                                        |
-| ----------------------------------------------------------- | ------- | ----------------------------------------------------------------------------- |
-| `nav_office_search_api_lookups_total`                       | counter | `operation` = geoid/adresse/bydel, `result` = hits/empty/invalid/error        |
-| `nav_office_search_api_norg_refresh_total`                  | counter | `result` = success/failure                                                    |
-| `nav_office_search_api_norg_last_success_timestamp_seconds` | gauge   | –                                                                             |
-| `nav_office_search_api_norg_geoids_loaded`                  | gauge   | –                                                                             |
-| `nav_office_search_api_norg_refresh_failed_offices`         | gauge   | – (offices whose areas failed to load in the last refresh; stale data reused) |
+| Metric                                                      | Type      | Labels                                                                        |
+| ----------------------------------------------------------- | --------- | ----------------------------------------------------------------------------- |
+| `nav_office_search_api_lookups_total`                       | counter   | `operation` = geoid/adresse/bydel, `result` = hits/empty/invalid/error        |
+| `nav_office_search_api_norg_refresh_total`                  | counter   | `result` = success/failure                                                    |
+| `nav_office_search_api_norg_last_success_timestamp_seconds` | gauge     | –                                                                             |
+| `nav_office_search_api_norg_geoids_loaded`                  | gauge     | –                                                                             |
+| `nav_office_search_api_norg_refresh_failed_offices`         | gauge     | – (offices whose areas failed to load in the last refresh; stale data reused) |
+| `nav_office_search_api_upstream_requests_total`             | counter   | `upstream` = pdl/texas, `status` = 2xx/4xx/5xx/…, timeout or network_error    |
+| `nav_office_search_api_upstream_request_duration_seconds`   | histogram | `upstream` (time until the response headers)                                  |
+| `nav_office_search_api_pdl_errors_total`                    | counter   | `code` = PDL's GraphQL error code, or other                                   |
+
+The upstream series are for requests made through `upstreamClient()`, and are named as in the frontend. PDL reports some failures as GraphQL errors on HTTP 200, where the upstream counter sees a `2xx`; `pdl_errors_total` counts those, and the errors in an HTTP error's body too.
 
 The `result` vocabulary and `operation` label deliberately match the nav-office-search frontend (`nav_office_search_*`), which measures the same lookups from the client side. Process metrics come from NAIS, and request latency from OTel/ingress, so they are not duplicated here.
 
@@ -97,7 +103,7 @@ Never use user input (geoIds, addresses, postnummer) as label values – keep ca
 `.nais/alerts.yml` (a `PrometheusRule`, deployed to prod-fss only by `deploy.prod.yml`) covers only what the frontend can't see. The frontend's alerts are the canary for user-facing failures, including PDL outages, and the metrics above are for diagnosing them:
 
 - `NavOfficeSearchApiNorgDataStale`: no successful NORG refresh in 2 days. A failed refresh keeps the pods ready with the previous data, so nothing user-facing notices.
-- `NavOfficeSearchApiPdlRejectingRequests`: PDL answers 4xx or GraphQL errors – access policy, Entra config or our queries, so ours to fix. PDL 5xx/network errors are PDL's.
+- There is no alert on PDL yet. `nav_office_search_api_pdl_errors_total` (codes such as `unauthorized` and `bad_request` are ours to fix) and the `pdl` upstream series are what one would be built on.
 
 Don't use `{{ }}` in the alert annotations: nais deploy templates every resource with Handlebars.
 
@@ -122,7 +128,7 @@ The first three come from `.nais/vars-*.yml`. Locally, `.env.development` points
 - **Framework**: Hono on `@hono/node-server`
 - **Package manager**: pnpm
 - **Linting and formatting**: ESLint with typescript-eslint; oxfmt (`oxfmt.config.ts`)
-- **Key libraries**: `graphql` + `graphql-request` (PDL queries), `node-cache` (token caching), `node-schedule` (cron), `@prometheus-io/client` (metrics), `@navikt/navno-logger` (logging)
+- **Key libraries**: `@itsy/corgi` (outbound HTTP to PDL and Texas, and the build's downloads), `zod` (the environment, upstream answers, the data files), `node-schedule` (cron), `@prometheus-io/client` (metrics), `@navikt/navno-logger` (logging)
 - **Packages**: `@navikt/*` come from GitHub Packages (`.npmrc`), so installing needs npm authentication for `npm.pkg.github.com`. `pnpm-workspace.yaml` holds new releases back for 3 days (`minimumReleaseAge`), except `@navikt/*` and `@itsy/*`, which the team publishes itself
 
 ## Logging
@@ -177,6 +183,6 @@ Key settings:
 ## Conventions
 
 - Imports name the `.ts` file, and type-only imports use `import type`. `erasableSyntaxOnly` and `verbatimModuleSyntax` keep the code to TypeScript that Node can strip. Imports across top-level folders use `#server/*` and `#test/*` (package.json `imports`)
-- Error responses use the `ErrorResponse` type from `fetch.ts` with `{ error: true, statusCode, message }`
-- The `fetchJson` helper handles query string building, JSON parsing, and error wrapping (used by NORG calls)
-- PDL calls use `graphql-request` directly with typed responses
+- A failed PDL lookup is a `Failure` from `server/pdl/client.ts`, `{ error: true, statusCode, message }`, which the route answers with
+- The `fetchJson` helper handles query string building, JSON parsing, and error wrapping (used by NORG calls). New outbound calls use `upstreamClient()` instead
+- PDL calls go through `pdlQuery(query, variables, schema)`: GraphQL as a plain POST, the answer's `data` typed by its zod schema. Log a failure with `failureOf()`, never an `HttpError` itself, whose message has the URL

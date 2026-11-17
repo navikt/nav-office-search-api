@@ -1,55 +1,43 @@
-import { logger } from '@navikt/navno-logger';
-import NodeCache from 'node-cache';
+import { schema } from '@itsy/corgi/schema';
+import { z } from 'zod';
 import { env } from '../env.ts';
+import { REQUEST_TIMEOUT_MS, upstreamClient } from '../upstream.ts';
 
-const TOKEN_CACHE_KEY = 'pdl-access-token';
-const TOKEN_EXPIRY_BUFFER_SECONDS = 60;
+const texas = upstreamClient('texas', { timeout: REQUEST_TIMEOUT_MS });
 
-type AzureAdTokenPayload = {
-	access_token: string;
-	expires_in: number;
-	token_type: string;
+const tokenSchema = z.looseObject({ access_token: z.string().min(1) });
+
+// Texas gave no token. `cause` is what happened.
+export class TokenError extends Error {}
+
+const askTexas = async (signal: AbortSignal, skipCache: boolean) => {
+	try {
+		const { access_token } = await texas.post(env.NAIS_TOKEN_ENDPOINT, {
+			body: { identity_provider: 'entra_id', target: env.PDL_TOKEN_TARGET, ...(skipCache && { skip_cache: true }) },
+			signal,
+			transform: schema(tokenSchema),
+		});
+		return access_token;
+	} catch (e) {
+		throw new TokenError('Texas gave no token for PDL', { cause: e });
+	}
 };
 
-const tokenCache = new NodeCache();
+// The token for a PDL request. Texas keeps the token itself and never hands out an expired one, so it is asked every
+// time and nothing is kept here.
+export const pdlToken = async (signal: AbortSignal) => env.PDL_DEVELOPMENT_TOKEN ?? askTexas(signal, false);
 
-const fetchNewAccessToken = async (): Promise<AzureAdTokenPayload> => {
-	const { NAIS_TOKEN_ENDPOINT, PDL_TOKEN_TARGET: target } = env;
+const FORCED_TOKEN_INTERVAL_MS = 60_000;
+let forcedTokenAt = -Infinity;
 
-	logger.info('Fetching new access token from NAIS token endpoint', { target });
-
-	const response = await fetch(NAIS_TOKEN_ENDPOINT, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-			identity_provider: 'entra_id',
-			target,
-		}),
-	});
-
-	if (!response.ok) {
-		throw new Error(`Failed to fetch access token - ${response.statusText}`);
+// A token Texas hasn't kept, for when PDL refused the one it had. At most one a minute for the whole process, so a PDL
+// that keeps refusing doesn't turn every lookup into a request to Entra ID. Undefined when one was just made, and
+// with a development token, which there is only one of.
+export const freshPdlToken = async (signal: AbortSignal) => {
+	if (env.PDL_DEVELOPMENT_TOKEN || Date.now() - forcedTokenAt < FORCED_TOKEN_INTERVAL_MS) {
+		return undefined;
 	}
 
-	const data: AzureAdTokenPayload = await response.json();
-	return data;
-};
-
-export const getAccessToken = async (): Promise<string> => {
-	const cached = tokenCache.get<string>(TOKEN_CACHE_KEY);
-	if (cached) {
-		return cached;
-	}
-
-	const tokenPayload = await fetchNewAccessToken();
-	const ttl = Math.max(tokenPayload.expires_in - TOKEN_EXPIRY_BUFFER_SECONDS, 0);
-	tokenCache.set(TOKEN_CACHE_KEY, tokenPayload.access_token, ttl);
-
-	return tokenPayload.access_token;
-};
-
-export const invalidateAccessToken = () => {
-	tokenCache.del(TOKEN_CACHE_KEY);
+	forcedTokenAt = Date.now();
+	return askTexas(signal, true);
 };

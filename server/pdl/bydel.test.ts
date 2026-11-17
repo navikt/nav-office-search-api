@@ -36,7 +36,7 @@ describe('GET /bydel', () => {
 		expect(body?.variables).toEqual({
 			paging: { pageNumber: 1, resultsPerPage: 50 },
 			criteria: [{ fieldName: 'vegadresse.postnummer', searchRule: { equals: '0150' } }],
-			aggregations: [{ fieldName: 'vegadresse.kommunenummer' }, { fieldName: 'vegadresse.bydelsnummer' }],
+			aggregations: [{ fieldName: 'vegadresse.bydelsnummer' }],
 		});
 	});
 

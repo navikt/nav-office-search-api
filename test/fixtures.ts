@@ -92,11 +92,10 @@ export const pdlAdresseAnswer = (vegadresser: (Vegadresse | null)[], totalHits =
 	},
 });
 
-export const pdlBydelAnswer = (bydelsnumre: string[], kommunenumre = ['0301']) => ({
+export const pdlBydelAnswer = (bydelsnumre: string[]) => ({
 	data: {
 		sokAdresse: {
 			aggregations: [
-				{ fieldName: 'vegadresse.kommunenummer', values: kommunenumre.map((value) => ({ value, docCount: 10 })) },
 				{ fieldName: 'vegadresse.bydelsnummer', values: bydelsnumre.map((value) => ({ value, docCount: 10 })) },
 			],
 		},
