@@ -118,7 +118,7 @@ export const observeUpstream = async (upstream: Upstream, request: () => Promise
 };
 
 // The codes PDL gives its GraphQL errors. One it adds later is counted as other.
-const pdlErrorCodes = ['unauthenticated', 'unauthorized', 'not_found', 'bad_request', 'server_error'];
+const pdlErrorCodes = new Set(['unauthenticated', 'unauthorized', 'not_found', 'bad_request', 'server_error']);
 
 const pdlErrorsCounter = new Counter({
 	name: 'nav_office_search_api_pdl_errors_total',
@@ -133,6 +133,6 @@ for (const code of [...pdlErrorCodes, 'other']) {
 
 export const recordPdlErrors = (codes: string[]) => {
 	for (const code of codes) {
-		pdlErrorsCounter.inc({ code: pdlErrorCodes.includes(code) ? code : 'other' });
+		pdlErrorsCounter.inc({ code: pdlErrorCodes.has(code) ? code : 'other' });
 	}
 };

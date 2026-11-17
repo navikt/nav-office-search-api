@@ -25,7 +25,8 @@ const askTexas = async (signal: AbortSignal, skipCache: boolean) => {
 
 // The token for a PDL request. Texas keeps the token itself and never hands out an expired one, so it is asked every
 // time and nothing is kept here.
-export const pdlToken = async (signal: AbortSignal) => env.PDL_DEVELOPMENT_TOKEN ?? askTexas(signal, false);
+export const pdlToken = (signal: AbortSignal) =>
+	env.PDL_DEVELOPMENT_TOKEN ? Promise.resolve(env.PDL_DEVELOPMENT_TOKEN) : askTexas(signal, false);
 
 const FORCED_TOKEN_INTERVAL_MS = 60_000;
 let forcedTokenAt = -Infinity;

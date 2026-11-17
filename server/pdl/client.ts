@@ -83,7 +83,13 @@ export const pdlQuery = async <Schema extends StandardSchemaV1>(
 				},
 			});
 		} catch (e) {
-			recordPdlErrors(e instanceof PdlErrors ? e.codes : isHttpError(e) ? errorCodesOf(e.data) : []);
+			let codes: string[] = [];
+			if (e instanceof PdlErrors) {
+				codes = e.codes;
+			} else if (isHttpError(e)) {
+				codes = errorCodesOf(e.data);
+			}
+			recordPdlErrors(codes);
 			throw e;
 		}
 	};
