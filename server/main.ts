@@ -2,21 +2,24 @@ import { serve } from '@hono/node-server';
 import { logger } from '@navikt/navno-logger';
 import type { Cron } from 'croner';
 import { createApp } from './app.ts';
-import { refreshData } from './data/data.ts';
+import { hasReferenceData, refreshData } from './data/data.ts';
 import { env } from './env.ts';
 import { loadNorgOfficeInfo } from './offices/offices.ts';
 import { everyMorning } from './schedule.ts';
 
 const appPort = env.PORT;
 
-let isReady = false;
-const app = createApp(() => isReady);
+let officesLoaded = false;
+
+// Ready once both loads have succeeded: the office map /geoid reads, and the reference data /search reads. A pod
+// that has neither yet gets no traffic, and keeps trying.
+const app = createApp(() => officesLoaded && hasReferenceData());
 
 const jobs: Cron[] = [];
 
 const refreshOfficeData = async () => {
 	if (await loadNorgOfficeInfo()) {
-		isReady = true;
+		officesLoaded = true;
 	}
 };
 
@@ -24,7 +27,7 @@ const server = serve({ fetch: app.fetch, port: appPort, overrideGlobalObjects: f
 	void refreshOfficeData();
 	jobs.push(everyMorning(refreshOfficeData));
 
-	// The reference data for the search. No endpoint reads it yet, and none of them waits for it.
+	// The reference data /search reads
 	void refreshData();
 	jobs.push(everyMorning(refreshData));
 

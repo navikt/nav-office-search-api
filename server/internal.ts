@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { metricsRegistry } from './metrics.ts';
 
-// Probes and metrics for NAIS (.nais/config.yml). Not ready until the offices are loaded (main.ts).
+// Probes and metrics for NAIS (.nais/config.yml). Not ready until the office map and the reference data are loaded
+// (main.ts).
 export const internal = (isReady: () => boolean) =>
 	new Hono()
 		.get('/isAlive', (c) => c.text('I am alive!'))

@@ -4,7 +4,7 @@
 
 Hono API (Node.js, TypeScript) that provides office lookup endpoints for a frontend app. It maps geographical IDs and addresses to NAV office information by aggregating data from two external services: NORG (office registry) and PDL (address lookup via GraphQL).
 
-The service also builds the reference data the office search needs: each kommune's and bydel's office, the bydeler, the kommuner and every poststed. It is built at start and every morning from NORG, from XP's list of office pages, and from two files the image carries: Bring's register of every postnummer and SSB's list of bydeler. The build downloads those two, since a pod in FSS can't reach Bring. No endpoint reads the reference data yet, and none waits for it; it is the second step of moving the office search into this service.
+The service also builds the reference data the office search needs: each kommune's and bydel's office, the bydeler, the kommuner and every poststed. It is built at start and every morning from NORG, from XP's list of office pages, and from two files the image carries: Bring's register of every postnummer and SSB's list of bydeler. The build downloads those two, since a pod in FSS can't reach Bring. `GET /search` is the office search itself, answered from that data and from PDL. nav-office-search doesn't ask it yet: it still uses `/geoid`, `/adresse` and `/bydel`, which stay until it has switched. A pod is ready once the reference data and the old office map have each loaded.
 
 Runs on port 3003. Deployed as a Docker container.
 
@@ -41,6 +41,12 @@ server/
   offices/
     offices.ts     the geoId → office map, loaded from NORG
     route.ts       GET /geoid
+  search/
+    route.ts       GET /search
+    search.ts      the one search: a postnummer, else a name, else an address
+    postnr.ts, name.ts, address.ts   the three kinds, as nav-office-search had them
+    results.ts     what /search answers with, the types nav-office-search's browser code reads
+    sort.ts, removeDuplicates.ts
   pdl/
     adresse.ts     GET /adresse
     bydel.ts       GET /bydel
@@ -56,24 +62,36 @@ test/              test helpers: the app on a free port, the fetch mock, fixture
 ### Data Flow
 
 0. **Build**: `pnpm build` (`build/main.ts`) downloads Bring's register and SSB's bydeler, checks them (complete rows, at least 2,500 rows and 15 bydeler) and writes `server/data/files/postnrRegister.json` and `bydeler.json`, each with the time it was fetched. A download or a check that fails ends the build, so the previous image keeps running.
-1. **Reference data**: `refreshData()` (`server/data/data.ts`) runs at start and at 05:00. `loadData()` asks XP for the office pages and NORG for its active local offices and their areas (8 offices at a time), reads the two files, and builds `offices`, `bydeler`, `kommuner` and `poststeder`. It is all or nothing: when a source fails, or a dataset is below its floor (offices 200, bydeler 15, poststeder 2,500, kommuner 150), the load throws, `Loading data failed` is logged and the data in use stays. With no data in use, as after a first load that fails, the load is tried again every minute until one succeeds. A 404 from NORG for one office means it has no areas. Nothing reads the data yet, and neither readiness nor the endpoints wait for it. The NORG loader below still runs beside it, so NORG is asked twice.
+1. **Reference data**: `refreshData()` (`server/data/data.ts`) runs at start and at 05:00. `loadData()` asks XP for the office pages and NORG for its active local offices and their areas (8 offices at a time), reads the two files, and builds `offices`, `bydeler`, `kommuner` and `poststeder`. It is all or nothing: when a source fails, or a dataset is below its floor (offices 200, bydeler 15, poststeder 2,500, kommuner 150), the load throws, `Loading data failed` is logged and the data in use stays. With no data in use, as after a first load that fails, the load is tried again every minute until one succeeds. A 404 from NORG for one office means it has no areas. `/search` reads the data, and a pod isn't ready until a load has succeeded. The three older endpoints answer without it. The NORG loader below still runs beside it, so NORG is asked twice.
 2. **Startup**: `loadNorgOfficeInfo()` fetches all active local offices from NORG, then for each office fetches its geographical areas. This builds an in-memory `geoIdToEnhetMap` (geoId → `{ enhetNr, navn }`).
-3. **Scheduled refresh**: `everyMorning()` (`server/schedule.ts`, croner) re-runs `loadNorgOfficeInfo` and `refreshData` daily at 05:00 UTC, whatever the machine's time zone. A run that throws is logged and the schedule keeps going. The server reports not-ready (`503`) until a NORG office-data refresh succeeds.
+3. **Scheduled refresh**: `everyMorning()` (`server/schedule.ts`, croner) re-runs `loadNorgOfficeInfo` and `refreshData` daily at 05:00 UTC, whatever the machine's time zone. A run that throws is logged and the schedule keeps going. The server reports not-ready (`503`) until the office map and the reference data have each loaded once. It never exits over a failed load: it stays not ready and keeps trying.
 4. **Request handling**: Functional endpoints do not perform application-level authentication. The public `-fss-pub.nais.io` ingresses are reachable without credentials; `accessPolicy.inbound` only controls internal service-to-service traffic. Outbound calls to PDL use a machine-to-machine token fetched from the NAIS token endpoint.
 5. **A PDL lookup** (`pdlQuery` in `server/pdl/client.ts`): asks Texas for the token, posts the query, reads the answer's `errors` first and then checks its `data` against the query's zod schema. The token request, the query and a second try share one 4 s deadline (`REQUEST_TIMEOUT_MS`), since nav-office-search gives up after 5 s. Past the deadline the route answers 504; any other failure is 502. When PDL refuses the token (HTTP 401, or a GraphQL error with code `unauthenticated`), the query is tried once more with a token Texas hasn't kept.
 
 ### Endpoints
 
-| Route                              | Purpose                                                   |
-| ---------------------------------- | --------------------------------------------------------- |
-| `GET /geoid?id=<geoId>`            | Looks up office info from the in-memory map               |
-| `GET /adresse?queryString=<query>` | Freetext address search via PDL GraphQL (sokAdresse)      |
-| `GET /bydel?postnummer=<nr>`       | Looks up district numbers for a four-digit postal code    |
-| `GET /internal/isAlive`            | Liveness probe                                            |
-| `GET /internal/isReady`            | Readiness probe (503 until initial load attempt finishes) |
-| `GET /internal/metrics`            | Prometheus metrics (scraped by NAIS)                      |
+| Route                              | Purpose                                                |
+| ---------------------------------- | ------------------------------------------------------ |
+| `GET /geoid?id=<geoId>`            | Looks up office info from the in-memory map            |
+| `GET /adresse?queryString=<query>` | Freetext address search via PDL GraphQL (sokAdresse)   |
+| `GET /bydel?postnummer=<nr>`       | Looks up district numbers for a four-digit postal code |
+| `GET /search?query=<text>`         | The office search: a postnummer, a name or an address  |
+| `GET /internal/isAlive`            | Liveness probe                                         |
+| `GET /internal/isReady`            | Readiness probe (503 until both loads have succeeded)  |
+| `GET /internal/metrics`            | Prometheus metrics (scraped by NAIS)                   |
 
 Each route module exports its own `Hono` app, which `server/app.ts` mounts with `app.route()`. A route counts its lookup with the `countLookup(operation)` middleware: it sets `c.set('lookupResult', 'hits' | 'empty')` when it answers 200 or 404, and without that a 5xx counts as `error` and a 4xx as `invalid`. Query parameters are read with `c.req.queries()`, so a repeated one counts as missing. Only the root app's `strict: false` makes a trailing slash match, so tests always go through the root app. Paths are case-sensitive. A thrown error reaches `app.onError`, which logs the method and path (never the query) and answers 500.
+
+### The search
+
+`GET /search?query=` (`server/search/`) is what nav-office-search's `/api/search` does today, moved here with its tests, and answers in the shapes its browser code reads (`results.ts`):
+
+- Four digits are a postnummer: its poststed with its kommune's office or, in a kommune with bydeler, the offices of the bydeler PDL has addresses in for it. An unknown one is 404.
+- Anything else is tried as a name of a poststed, kommune, bydel or office, from the reference data alone.
+- What no name matches is searched for as an address in PDL. Each address carries `officeInfo`: the office of its bydel or, without a bydel, of its kommune, and `null` when that area has none.
+- Errors are `{ type: 'error', messageId }`, where `messageId` is one of the four ids nav-office-search has messages for: `errorMissingQuery` (400), `errorInvalidQuery` (400), `errorInvalidPostnr` (404) and `errorServerError` (502 and 504 from PDL, 500 otherwise).
+
+`test/fixtures/name-search/` holds nav-office-search's recorded name searches, which `/search` must answer byte for byte.
 
 ### Caching Strategy
 
@@ -94,7 +112,7 @@ Each route module exports its own `Hono` app, which `server/app.ts` mounts with 
 
 | Metric                                                      | Type      | Labels                                                                             |
 | ----------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------- |
-| `nav_office_search_api_lookups_total`                       | counter   | `operation` = geoid/adresse/bydel, `result` = hits/empty/invalid/error             |
+| `nav_office_search_api_lookups_total`                       | counter   | `operation` = geoid/adresse/bydel/search, `result` = hits/empty/invalid/error      |
 | `nav_office_search_api_norg_refresh_total`                  | counter   | `result` = success/failure                                                         |
 | `nav_office_search_api_norg_last_success_timestamp_seconds` | gauge     | –                                                                                  |
 | `nav_office_search_api_norg_geoids_loaded`                  | gauge     | –                                                                                  |
