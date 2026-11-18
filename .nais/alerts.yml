@@ -12,15 +12,28 @@ spec:
   groups:
     - name: nav-office-search-api
       rules:
-        # The daily refresh can fail while the pods stay ready with yesterday's data, so
-        # nothing user-facing notices. Office mappings rarely change, so a couple of days is fine.
-        - alert: NavOfficeSearchApiNorgDataStale
-          expr: time() - max(nav_office_search_api_norg_last_success_timestamp_seconds) > 2 * 86400
+        # Our office reference data's daily load can fail while the pods stay ready with the data
+        # from before, so nothing user-facing fires as a problem. The data rarely changes, so a couple of days is fine.
+        # min() is used so a pod that loads doesn't hide one that doesn't.
+        # A pod that has never loaded exports 0, which is stale too.
+        - alert: NavOfficeSearchApiDataStale
+          expr: time() - min(nav_office_search_api_data_last_success_timestamp_seconds) > 2 * 86400
           for: 1h
           annotations:
-            summary: nav-office-search-api has not refreshed office data from NORG for over 2 days
-            consequence: Office lookups use stale NORG data. Changed or new offices are wrong or missing.
-            action: Check the logs for "Fetch error from norg enhet" or "Error loading office data". Restarting the pods triggers a new load.
+            summary: A nav-office-search-api pod has no reference data from the last 2 days
+            consequence: Its searches are answered from old postnumre, kommuner, bydeler and offices. A pod that has never loaded is not ready, and answers none.
+            action: Check the logs for "Loading data failed". The error with it names the source that failed, or the dataset that came out too small. nav_office_search_api_upstream_requests_total has norg and xp. Restarting the pods triggers a new load.
+          labels:
+            namespace: navno
+            severity: warning
+
+        - alert: NavOfficeSearchApiKommunerWithoutOffice
+          expr: max(nav_office_search_api_reference_data_without_office{dataset="kommuner"}) > 0
+          for: 30m
+          annotations:
+            summary: Some kommuner have no Nav office in nav-office-search-api's reference data
+            consequence: Searches for a postnummer or a name in those kommuner find no office.
+            action: The log line "Areas are missing an office" with dataset kommuner has their numbers. "Offices without a page in XP" and "Offices without areas in NORG" say what the sources lack. After a kommune change, run "Refresh base image and data files" for a new register. A fix in NORG or XP is read by the next load at 05:00 UTC, or when the pods restart.
           labels:
             namespace: navno
             severity: warning

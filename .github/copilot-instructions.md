@@ -136,7 +136,8 @@ Never use user input (geoIds, addresses, postnummer) as label values – keep ca
 
 `.nais/alerts.yml` (a `PrometheusRule`, deployed to prod-fss only by `deploy.prod.yml`) covers only what the frontend can't see. The frontend's alerts are the canary for user-facing failures, including PDL outages, and the metrics above are for diagnosing them:
 
-- `NavOfficeSearchApiNorgDataStale`: no successful NORG refresh in 2 days. A failed refresh keeps the pods ready with the previous data, so nothing user-facing notices.
+- `NavOfficeSearchApiDataStale`: a pod whose last successful reference data load is over 2 days old. A failed load keeps the pods ready with the data from before, so nothing user-facing notices. It takes `min()` over the pods, so one that loads doesn't hide one that doesn't; a pod that has never loaded exports 0 and counts as stale after an hour.
+- `NavOfficeSearchApiKommunerWithoutOffice`: the last load found no office for a kommune in Bring's register (`reference_data_without_office{dataset="kommuner"}` above 0), so searches there find none.
 - There is no alert on PDL yet. `nav_office_search_api_pdl_errors_total` (codes such as `unauthorized` and `bad_request` are ours to fix) and the `pdl` upstream series are what one would be built on.
 
 Don't use `{{ }}` in the alert annotations: nais deploy templates every resource with Handlebars.
