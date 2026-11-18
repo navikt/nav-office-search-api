@@ -94,7 +94,7 @@ export const loadData = async () => {
 		for (const [dataset, numbers] of Object.entries(withoutOffice)) {
 			// One message for all of them, with the numbers as fields, so the log groups them
 			if (numbers.length > 0) {
-				logger.warn('No office found', { dataset, count: numbers.length, numbers: numbers.slice(0, 20) });
+				logger.warn('Areas are missing an office', { dataset, count: numbers.length, numbers: numbers.slice(0, 20) });
 			}
 		}
 

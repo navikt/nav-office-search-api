@@ -91,9 +91,12 @@ describe('a first load', () => {
 		expect(sizes()).toEqual(LOADED);
 		expect(error.mock.calls).toEqual([]);
 		expect(warn.mock.calls).toEqual([
-			['No office found', { dataset: 'kommuner', count: 1, numbers: [expect.any(String)] }],
-			['No office found', { dataset: 'poststeder', count: 2, numbers: [expect.any(String), expect.any(String)] }],
-			['No office found', { dataset: 'bydeler', count: 1, numbers: [expect.any(String)] }],
+			['Areas are missing an office', { dataset: 'kommuner', count: 1, numbers: [expect.any(String)] }],
+			[
+				'Areas are missing an office',
+				{ dataset: 'poststeder', count: 2, numbers: [expect.any(String), expect.any(String)] },
+			],
+			['Areas are missing an office', { dataset: 'bydeler', count: 1, numbers: [expect.any(String)] }],
 		]);
 		expect(await loads()).toEqual({ success: 1, failure: 0 });
 	});
