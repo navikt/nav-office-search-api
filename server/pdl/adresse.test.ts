@@ -64,13 +64,25 @@ describe('GET /adresse', () => {
 		expect(await res.json()).toEqual({ totalHits: 0, adresser: [] });
 	});
 
-	test('passes a hit without vegadresse on as null (bug)', async () => {
+	test('leaves out a hit without a vegadresse, which is an address of another kind', async () => {
 		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken() });
-		http.post(PDL_GRAPHQL_URL, { json: pdlAdresseAnswer([vegadresse(), null]) });
+		http.post(PDL_GRAPHQL_URL, { json: pdlAdresseAnswer([null, vegadresse(), null]) });
 
 		const res = await search('Storgata');
 
-		expect(await res.json()).toEqual({ totalHits: 2, adresser: [vegadresse(), null] });
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ totalHits: 3, adresser: [vegadresse()] });
+	});
+
+	test('counts a search as empty when no hit has a vegadresse', async () => {
+		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken() });
+		http.post(PDL_GRAPHQL_URL, { json: pdlAdresseAnswer([null]) });
+		const app = await startApp();
+
+		const res = await app.get('/adresse?queryString=Storgata');
+
+		expect(await res.json()).toEqual({ totalHits: 1, adresser: [] });
+		await expectLookups(app, 'adresse', [0, 1, 0, 0]);
 	});
 
 	test.each([
@@ -91,15 +103,16 @@ describe('GET /adresse', () => {
 			'Bjørnstjerne Bjørnsons gate',
 			[fritekst('Bjørnstjerne'), fritekst('Bjørnsons'), fritekst('gate')],
 		],
-		['other characters, deleted', 'Storgata #1!', [fritekst('Storgata'), husnummer('1')]],
+		['other characters, read as spaces', 'Storgata #1!', [fritekst('Storgata'), husnummer('1')]],
+		['one of them inside a word', 'Storgata(Oslo)', [fritekst('Storgata'), fritekst('Oslo')]],
 		[
-			'a comma after the house number, kept in the number (bug)',
-			'Storgata 1, Oslo',
-			[fritekst('Storgata'), fritekst('1,'), fritekst('Oslo')],
+			'a slash between numbers, which stay two numbers',
+			'Storgata 1/3',
+			[fritekst('Storgata'), husnummer('1'), husnummer('3')],
 		],
-		['a comma after a letter, not split (bug)', 'Storgata 31B,', [fritekst('Storgata'), fritekst('31B,')]],
-		['a slash between numbers, joining them (bug)', 'Storgata 1/3', [fritekst('Storgata'), husnummer('13')]],
-		['only a comma, sent on (bug)', ',', [fritekst(',')]],
+		['a comma after the house number', 'Storgata 1, Oslo', [fritekst('Storgata'), husnummer('1'), fritekst('Oslo')]],
+		['a comma without a space', 'Storgata 1,Oslo', [fritekst('Storgata'), husnummer('1'), fritekst('Oslo')]],
+		['a comma after a letter', 'Storgata 31B,', [fritekst('Storgata'), husnummer('31'), fritekst('B')]],
 	])('sends criteria for %s', async (_, queryString, criteria) => {
 		http.post(NAIS_TOKEN_ENDPOINT, { json: texasToken() });
 		http.post(PDL_GRAPHQL_URL, { json: pdlAdresseAnswer([]) });
@@ -119,6 +132,8 @@ describe('GET /adresse', () => {
 			'Query string is required and must be a non-empty string',
 		],
 		['with only characters that are not allowed', '/adresse?queryString=!%23%24', 'Query string is empty or invalid'],
+		['with only a comma', '/adresse?queryString=%2C', 'Query string is empty or invalid'],
+		['with only commas and spaces', '/adresse?queryString=%2C%20%2C%20', 'Query string is empty or invalid'],
 		[
 			'with more than 150 characters',
 			`/adresse?queryString=${'a'.repeat(151)}`,

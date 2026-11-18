@@ -63,9 +63,21 @@ const emptyDir = async () => {
 };
 
 test('has no data before the first load', async () => {
-	const { referenceData } = await fresh();
+	const { referenceData, hasReferenceData } = await fresh();
 
+	expect(hasReferenceData()).toBe(false);
 	expect(() => referenceData()).toThrow('The reference data is not loaded');
+});
+
+test('has data once a load has succeeded, and keeps having it when a later one fails', async () => {
+	const { loadData, hasReferenceData } = await fresh();
+
+	await loadData();
+	expect(hasReferenceData()).toBe(true);
+
+	http.get(xpOfficeInfoUrl, { status: 503 });
+	await expect(loadData()).rejects.toThrow();
+	expect(hasReferenceData()).toBe(true);
 });
 
 describe('a first load', () => {
@@ -306,12 +318,13 @@ describe('refreshData, as the server runs it at start and every morning', () => 
 
 	test('tries a first load that fails again every minute, until one succeeds', async () => {
 		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-		const { refreshData, referenceData, sizes } = await fresh();
+		const { refreshData, referenceData, hasReferenceData, sizes } = await fresh();
 		http.get(xpOfficeInfoUrl, [{ status: 503 }, { status: 503 }, { json: xpOffices }]);
 
 		await refreshData();
 		await vi.advanceTimersByTimeAsync(59_999);
 		expect(askedXp()).toBe(1);
+		expect(hasReferenceData()).toBe(false);
 
 		await vi.advanceTimersByTimeAsync(1);
 		await vi.waitFor(() => expect(askedXp()).toBe(2));
@@ -320,6 +333,7 @@ describe('refreshData, as the server runs it at start and every morning', () => 
 		await vi.advanceTimersByTimeAsync(60_000);
 		await vi.waitFor(() => expect(sizes()).toEqual(LOADED));
 		expect(askedXp()).toBe(3);
+		expect(hasReferenceData()).toBe(true);
 
 		// And then not again
 		await vi.advanceTimersByTimeAsync(600_000);

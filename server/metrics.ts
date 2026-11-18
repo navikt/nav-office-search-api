@@ -6,7 +6,7 @@ import { createMiddleware } from 'hono/factory';
 // are exposed, and tests can inspect/reset it in isolation.
 export const metricsRegistry = new Registry();
 
-export const lookupOperations = ['geoid', 'adresse', 'bydel'] as const;
+export const lookupOperations = ['geoid', 'adresse', 'bydel', 'search'] as const;
 export type LookupOperation = (typeof lookupOperations)[number];
 
 // Same vocabulary as the nav-office-search frontend's search outcomes

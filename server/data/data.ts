@@ -28,6 +28,9 @@ const floors = { offices: 200, bydeler: 15, poststeder: 2500, kommuner: 150 };
 
 let inUse: ReferenceData | undefined;
 
+// Whether a load has succeeded, so there is data to search in
+export const hasReferenceData = () => inUse !== undefined;
+
 // The data in use. Throws before the first load.
 export const referenceData = () => {
 	if (!inUse) {

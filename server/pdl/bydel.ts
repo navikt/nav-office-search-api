@@ -60,6 +60,12 @@ const fetchPdlBydelSok = async (postnummer: string): Promise<SokBydel | Failure>
 	return pdlQuery(sokBydelQuery, queryVariables, sokBydelSchema);
 };
 
+// The bydelsnumre of the addresses PDL has in a postnummer, for /search
+export const bydelsnumreIn = async (postnummer: string) => {
+	const response = await fetchPdlBydelSok(postnummer);
+	return 'error' in response ? response : toBydelerResponse(response).bydeler;
+};
+
 export const bydel = new Hono<LookupEnv>().get('/', countLookup('bydel'), async (c) => {
 	// A repeated postnummer counts as a missing one
 	const values = c.req.queries('postnummer');

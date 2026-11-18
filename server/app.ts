@@ -5,6 +5,7 @@ import { internal } from './internal.ts';
 import { geoid } from './offices/route.ts';
 import { adresse } from './pdl/adresse.ts';
 import { bydel } from './pdl/bydel.ts';
+import { search } from './search/route.ts';
 
 export const createApp = (isReady: () => boolean) => {
 	// strict: false matches /geoid/ as well as /geoid. Only the root app honours it.
@@ -19,6 +20,7 @@ export const createApp = (isReady: () => boolean) => {
 	app.route('/geoid', geoid);
 	app.route('/adresse', adresse);
 	app.route('/bydel', bydel);
+	app.route('/search', search);
 	app.route('/internal', internal(isReady));
 
 	// Logs the path, not the query, which holds what was searched for
