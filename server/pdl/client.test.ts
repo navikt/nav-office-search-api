@@ -35,7 +35,7 @@ const logged = () => {
 			.flatMap(([level, spy]) =>
 				spy.mock.calls.map((args, i) => ({ order: spy.mock.invocationCallOrder[i] ?? 0, call: [level, ...args] }))
 			)
-			.sort((a, b) => a.order - b.order)
+			.toSorted((a, b) => a.order - b.order)
 			.map(({ call }) => call);
 };
 

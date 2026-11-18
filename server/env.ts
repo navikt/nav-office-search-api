@@ -38,7 +38,7 @@ const readEnv = () => {
 		// It happens while the server's modules load, before main.ts runs. Logged and exited here, since Node would
 		// print a thrown error as plain text.
 		logger.error('Server failed to start', e);
-		process.exit(1);
+		return process.exit(1);
 	}
 };
 

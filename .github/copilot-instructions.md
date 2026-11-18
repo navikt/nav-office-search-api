@@ -138,7 +138,7 @@ Never use user input (geoIds, addresses, postnummer) as label values – keep ca
 
 - `NavOfficeSearchApiDataStale`: a pod whose last successful reference data load is over 2 days old. A failed load keeps the pods ready with the data from before, so nothing user-facing notices. It takes `min()` over the pods, so one that loads doesn't hide one that doesn't; a pod that has never loaded exports 0 and counts as stale after an hour.
 - `NavOfficeSearchApiKommunerWithoutOffice`: the last load found no office for a kommune in Bring's register (`reference_data_without_office{dataset="kommuner"}` above 0), so searches there find none.
-- There is no alert on PDL yet. `nav_office_search_api_pdl_errors_total` (codes such as `unauthorized` and `bad_request` are ours to fix) and the `pdl` upstream series are what one would be built on.
+- `NavOfficeSearchApiPdlRejectingRequests`: PDL refuses what we send, as more than 5 GraphQL errors with a code other than `server_error` (`pdl_errors_total`), or more than 5 HTTP 4xx answers (the `pdl` upstream series), in 15 minutes. Those are ours to fix: the token, the access to pdl-api, or the query. PDL being down (`server_error`, 5xx, timeouts) isn't counted: the frontend's alerts see the failed searches.
 
 Don't use `{{ }}` in the alert annotations: nais deploy templates every resource with Handlebars.
 
@@ -164,7 +164,8 @@ The first three and the two after Texas come from `.nais/vars-*.yml`. Locally, `
 - **Language**: TypeScript (strict mode, nodenext module resolution)
 - **Framework**: Hono on `@hono/node-server`
 - **Package manager**: pnpm
-- **Linting and formatting**: ESLint with typescript-eslint; oxfmt (`oxfmt.config.ts`)
+- **Linting and formatting**: oxlint, type-aware through `oxlint-tsgolint` (`oxlint.config.ts`: `correctness`, `suspicious` and `perf` as errors, with `no-console` and `typescript/no-explicit-any`); oxfmt (`oxfmt.config.ts`). A finding is fixed in the code; a rule that is turned off or configured says why in the config
+- **Git hooks**: lefthook (`lefthook.yml`). Before a commit it runs `oxlint --fix` and oxfmt on the staged files, and `tsc --noEmit` when a TypeScript file is staged; before a push it runs the tests. `pnpm install` puts the hooks in place (`allowBuilds` in `pnpm-workspace.yaml` lets lefthook's install script run). A clone from when husky was used runs `pnpm exec lefthook install --reset-hooks-path` once
 - **Key libraries**: `@itsy/corgi` (outbound HTTP to PDL, Texas, XP and NORG's new loader, and the build's downloads), `ufo` (joining URLs), `zod` (the environment, upstream answers, the data files), `croner` (the two daily jobs), `@prometheus-io/client` (metrics), `@navikt/navno-logger` (logging)
 - **Packages**: `@navikt/*` come from GitHub Packages (`.npmrc`), so installing needs npm authentication for `npm.pkg.github.com`. `pnpm-workspace.yaml` holds new releases back for 3 days (`minimumReleaseAge`), except `@navikt/*` and `@itsy/*`, which the team publishes itself
 
@@ -180,7 +181,7 @@ Keep the message fixed and put values in fields, so the logs can be searched by 
 - `pnpm run dev` – Run `server/main.ts` with `--watch`, offline: it reads `.env.development`, `test/mocks/dev.ts` (loaded with `--import`) answers NORG and XP from the snapshot in `test/fixtures` and PDL and Texas from `test/fixtures.ts`, and the two data files are the snapshot's in `test/fixtures/files`. `MOCKS=false` with real values in the shell goes to the real services
 - `pnpm run start` – Run `server/main.ts`
 - `pnpm run format` – Format with oxfmt
-- `pnpm run lint` – oxfmt check, ESLint, then `tsc --noEmit` over `server/`, `build/`, `test/` and the config files. oxfmt skips `server/data/files`, which is in `.gitignore`
+- `pnpm run lint` – oxfmt check, oxlint, then `tsc --noEmit` over `server/`, `build/`, `test/` and the config files. oxfmt skips `server/data/files`, which is in `.gitignore`
 - `pnpm run test` – Vitest on the TypeScript source. Each test starts a fresh copy of the app on a free port (`test/app.ts`) and asks it over HTTP; NORG, PDL and Texas are answered by corgi's `mockFetch` (`test/fetch.ts`, `test/fixtures.ts`). A test file sits next to the code it tests, in `build/` too, where Bring and SSB are answered the same way. Today's wrong behaviour is pinned in tests named `(bug)`
 
 ## Deployment
@@ -214,7 +215,9 @@ Key settings:
 - **Deploy to prod** (`deploy.prod.yml`): Triggers on push to `main` or manually. Runs `build-deploy-prod.yml`, then creates a GitHub Release with auto-generated release notes.
 - **Refresh base image and data files** (`base-image-refresh.yml`): Sundays 23:17 Oslo time, daily at 05:17 on 1-7 January and 1-7 October, or manually from `main`. Runs `build-deploy-prod.yml`, so prod gets the newest base image and Bring's and SSB's files as they are that day. The January and October weeks are when those files change; a week of days, because neither source says at what hour and GitHub can drop a scheduled run. No release.
 - **Deploy to dev** (`deploy.dev.yml`): Manual trigger only (`workflow_dispatch`).
-- **Test pull request** (`pr-test.yml`): Runs lint and tests for pull requests.
+- **PR checks** (`pr-checks.yml`): Runs the build, lint and tests for pull requests to `main`.
+- **Dependabot lockfile fix** (`dependabot-lockfile-update.yml`): Regenerates `pnpm-lock.yaml` on Dependabot's pull requests.
+- **Roll back prod** (`rollback.prod.yml`): Manual. Redeploys the image of an earlier release to `prod-fss` without building, with the `.nais` files from that release's commit. Without a tag it takes the release before the newest one. A release records its image because `deploy.prod.yml` passes it to `release.yml`. The next push to `main`, and the next "Refresh base image and data files", deploy `main` again. The alerts are not rolled back.
 - All workflows use the reusable workflows in `navikt/navno-ci` (`node-build.yml`, `nais-deploy.yml`, `release.yml`, `dependabot-lockfile.yml`), which are built on `navikt/navno-actions`. The build runs: pnpm install → `pnpm run build` (downloads the two data files; pull request checks and Deploy to dev do it too, so every build needs Bring and SSB to answer) → lint → test → reinstall production dependencies → Docker build+push of `package.json`, `node_modules` and `server/`, which now holds the two files (`.dockerignore` keeps the tests out); then `nais-deploy.yml` deploys. Node version comes from `engines.node` in package.json.
 
 ## Conventions

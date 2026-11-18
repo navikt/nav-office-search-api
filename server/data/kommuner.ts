@@ -15,7 +15,7 @@ export const buildKommuner = (register: PostnrRegisterRow[], bydeler: Bydel[], o
 	const bydelerByKommunenr = Map.groupBy(bydeler, ({ bydelsnr }) => bydelsnr.slice(0, 4));
 	const names = new Map(register.map(({ kommunenr, kommune }) => [kommunenr, kommune]));
 	// By kommunenr: a name search that finds one office through several kommuner shows it under the first of them
-	const byKommunenr = [...names].sort(([a], [b]) => a.localeCompare(b));
+	const byKommunenr = [...names].toSorted(([a], [b]) => a.localeCompare(b));
 
 	return byKommunenr.flatMap(([kommunenr, kommuneNavn]): Kommune[] => {
 		const kommune = { kommunenr, kommuneNavn, kommuneNavnNormalized: normalizeString(kommuneNavn) };

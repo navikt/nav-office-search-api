@@ -1,0 +1,38 @@
+# Redeploys an earlier release's image to prod, without building or testing.
+# The .nais files come from the release's commit. The next push to main deploys main again, and so does the next
+# "Refresh base image and data files".
+name: Roll back prod
+on:
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: Release tag. Empty = the release before the newest one.
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.release.outputs.sha }}
+      image: ${{ steps.release.outputs.image }}
+    steps:
+      - id: release
+        uses: navikt/navno-actions/find-release@v1
+        with:
+          tag: ${{ inputs.release-tag }}
+
+  deploy:
+    needs: find
+    uses: navikt/navno-ci/.github/workflows/nais-deploy.yml@v1
+    permissions: { contents: read, id-token: write }
+    with:
+      cluster: prod-fss
+      ref: ${{ needs.find.outputs.sha }}
+      resource: .nais/config.yml
+      vars: .nais/vars-prod.yml
+      var: image=${{ needs.find.outputs.image }}

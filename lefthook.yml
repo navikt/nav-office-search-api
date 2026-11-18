@@ -1,0 +1,24 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: fix staged files
+      group:
+        piped: true
+        jobs:
+          - name: oxlint
+            glob: '*.ts'
+            run: pnpm exec oxlint --fix {staged_files}
+            stage_fixed: true
+          - name: oxfmt
+            run: pnpm exec oxfmt --no-error-on-unmatched-pattern {staged_files}
+            stage_fixed: true
+    # tsc checks the whole project, so it runs whenever any TS file is staged
+    - name: types
+      glob: '*.ts'
+      run: pnpm exec tsc --noEmit
+
+pre-push:
+  jobs:
+    - name: test
+      run: pnpm run test
+      interactive: true

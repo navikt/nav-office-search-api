@@ -37,3 +37,20 @@ spec:
           labels:
             namespace: navno
             severity: warning
+
+        # PDL failures via our token, our access, or our query.
+        # The frontend sees failed searches, but not the root cause.
+        # PDL being down is a server_error, a 5xx, or a timeout - and isn't included.
+        - alert: NavOfficeSearchApiPdlRejectingRequests
+          expr: |
+            sum(increase(nav_office_search_api_pdl_errors_total{code!="server_error"}[15m])) > 5
+            or
+            sum(increase(nav_office_search_api_upstream_requests_total{upstream="pdl",status="4xx"}[15m])) > 5
+          for: 5m
+          annotations:
+            summary: PDL is refusing nav-office-search-api's requests
+            consequence: Address searches, and postnummer searches in kommuner with bydeler, answer an error.
+            action: nav_office_search_api_pdl_errors_total says which code. unauthenticated and unauthorized are the token or the access to pdl-api (PDL_TOKEN_TARGET and accessPolicy), bad_request is our query. The log line "PDL request failed" has the status and the codes.
+          labels:
+            namespace: navno
+            severity: warning

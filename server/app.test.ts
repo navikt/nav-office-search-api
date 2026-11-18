@@ -6,7 +6,7 @@ import { navkontor, norgEnhet, norgEnhetUrl, norgNavkontorerUrl } from '#test/fi
 
 vi.mock('@navikt/navno-logger', async (importOriginal) => ({
 	...(await importOriginal<typeof import('@navikt/navno-logger')>()),
-	traceRoute: vi.fn(),
+	traceRoute: vi.fn<(route: string) => void>(),
 }));
 
 const http = installMockFetch();
