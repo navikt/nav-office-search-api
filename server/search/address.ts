@@ -9,9 +9,10 @@ export const addressSearch = async (query: string): Promise<SearchAnswer> => {
 
 	if ('error' in found) {
 		// 400 is a query that leaves nothing to search for. The rest is PDL not answering.
-		return found.statusCode === 400
-			? errorAnswer(400, 'errorInvalidQuery')
-			: errorAnswer(found.statusCode === 504 ? 504 : 502, 'errorServerError');
+		if (found.statusCode === 400) {
+			return errorAnswer(400, 'errorInvalidQuery');
+		}
+		return errorAnswer(found.statusCode === 504 ? 504 : 502, 'errorServerError');
 	}
 
 	const { offices } = referenceData();

@@ -67,13 +67,15 @@ const findKommuner = (kommuner: Kommune[], normalizedQuery: string): OfficeInfo[
 			return matches;
 		}
 
-		const officeInfo = kommune.bydeler
-			? kommune.bydeler.map((bydel) => buildOfficeHit(bydel.officeInfo, kommune.kommuneNavn))
-			: kommune.officeInfo
-				? [{ ...kommune.officeInfo, hitString: kommune.kommuneNavn }]
-				: [];
+		if (kommune.bydeler) {
+			return [...matches, ...kommune.bydeler.map((bydel) => buildOfficeHit(bydel.officeInfo, kommune.kommuneNavn))];
+		}
 
-		return [...matches, ...officeInfo];
+		if (kommune.officeInfo) {
+			return [...matches, { ...kommune.officeInfo, hitString: kommune.kommuneNavn }];
+		}
+
+		return matches;
 	}, [] as OfficeInfo[]);
 };
 
