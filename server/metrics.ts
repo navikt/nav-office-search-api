@@ -1,5 +1,4 @@
-import { isTimeoutError } from '@itsy/corgi';
-import { Counter, Gauge, Histogram, Registry } from '@prometheus-io/client';
+import { Counter, Gauge, Registry } from '@prometheus-io/client';
 import { createMiddleware } from 'hono/factory';
 
 // Dedicated registry (not the global default) so only our business metrics
@@ -9,7 +8,8 @@ export const metricsRegistry = new Registry();
 export const lookupOperations = ['geoid', 'adresse', 'bydel', 'search'] as const;
 export type LookupOperation = (typeof lookupOperations)[number];
 
-// Same vocabulary as the nav-office-search frontend's search outcomes
+// The nav-office-search frontend passes the answers on unread and counts its searches by status alone, so hits and
+// empty are only told apart here
 // hits    - valid request with at least one result
 // empty   - valid request, but no results (unknown geoid, no address hits, no bydeler)
 // invalid - rejected due to missing/invalid input (4xx)
@@ -82,40 +82,8 @@ export const recordNorgRefreshFailure = () => {
 	norgRefreshCounter.inc({ result: 'failure' });
 };
 
-// Outbound requests made through upstreamClient() (upstream.ts). Named and labelled as in the nav-office-search
-// frontend, which counts its own the same way.
-export type Upstream = 'pdl' | 'texas' | 'norg' | 'xp';
-
-const upstreamRequestsCounter = new Counter({
-	name: 'nav_office_search_api_upstream_requests_total',
-	help: 'Outbound requests by upstream and response status class (2xx, 4xx, 5xx, …), timeout or network_error',
-	labelNames: ['upstream', 'status'] as const,
-	registers: [metricsRegistry],
-});
-
-const upstreamDurationHistogram = new Histogram({
-	name: 'nav_office_search_api_upstream_request_duration_seconds',
-	help: 'Outbound request time until response headers, by upstream',
-	labelNames: ['upstream'] as const,
-	buckets: [0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30],
-	registers: [metricsRegistry],
-});
-
-// Runs an outbound request and records its status class and how long the answer took. A request that never got an
-// answer counts as a timeout or a network_error.
-export const observeUpstream = async (upstream: Upstream, request: () => Promise<Response>) => {
-	const stopTimer = upstreamDurationHistogram.startTimer({ upstream });
-	try {
-		const response = await request();
-		upstreamRequestsCounter.inc({ upstream, status: `${Math.floor(response.status / 100)}xx` });
-		return response;
-	} catch (e) {
-		upstreamRequestsCounter.inc({ upstream, status: isTimeoutError(e) ? 'timeout' : 'network_error' });
-		throw e;
-	} finally {
-		stopTimer();
-	}
-};
+// The outbound requests are counted and timed by upstreamClient() (upstream.ts), which makes
+// nav_office_search_api_upstream_requests_total and nav_office_search_api_upstream_request_duration_seconds here
 
 // The codes PDL gives its GraphQL errors. One it adds later is counted as other.
 const pdlErrorCodes = new Set(['unauthenticated', 'unauthorized', 'not_found', 'bad_request', 'server_error']);
@@ -137,8 +105,7 @@ export const recordPdlErrors = (codes: string[]) => {
 	}
 };
 
-// The reference data the search will read (data/data.ts). Named as in the nav-office-search frontend, which loads
-// the same data today, so the two can be compared by dataset.
+// The reference data the search reads (data/data.ts)
 const dataLoadsCounter = new Counter({
 	name: 'nav_office_search_api_data_loads_total',
 	help: 'Reference data loads (startup and the daily refresh) by outcome: success, or failure when a source failed or the new data was too small. A failed load keeps the data in use.',

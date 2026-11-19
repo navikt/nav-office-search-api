@@ -175,6 +175,9 @@ importers:
       '@navikt/navno-logger':
         specifier: 1.2.0
         version: 1.2.0(pino-pretty@13.2.0)
+      '@navikt/navno-server':
+        specifier: 1.0.0
+        version: 1.0.0(@hono/node-server@2.1.6(hono@4.13.17))(@itsy/corgi@1.4.1)(@navikt/navno-logger@1.2.0(pino-pretty@13.2.0))(@prometheus-io/client@0.16.1)(hono@4.13.17)
       '@prometheus-io/client':
         specifier: 0.16.1
         version: 0.16.1
@@ -246,6 +249,16 @@ packages:
     engines: {node: '>=24'}
     peerDependencies:
       pino-pretty: '>=13'
+
+  '@navikt/navno-server@1.0.0':
+    resolution: {integrity: sha512-G6+uuQWO7U4UM1hL+KKOy6lDlEfBR4ocpc+qjtoHuNiisLQ246/bDzE4kMNXoUAiXJ319MNmiqDn0TQJ2tt7AA==, tarball: https://npm.pkg.github.com/download/@navikt/navno-server/1.0.0/56dbbff7a2e7faacc4315a798ac2e60f1519a70f}
+    engines: {node: '>=24'}
+    peerDependencies:
+      '@hono/node-server': ^2.0.0
+      '@itsy/corgi': ^1.4.0
+      '@navikt/navno-logger': ^1.1.0
+      '@prometheus-io/client': ^0.16.0
+      hono: ^4.13.0
 
   '@opentelemetry/api@1.9.1':
     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
@@ -1273,6 +1286,14 @@ snapshots:
     dependencies:
       pino: 10.4.0
       pino-pretty: 13.2.0
+
+  '@navikt/navno-server@1.0.0(@hono/node-server@2.1.6(hono@4.13.17))(@itsy/corgi@1.4.1)(@navikt/navno-logger@1.2.0(pino-pretty@13.2.0))(@prometheus-io/client@0.16.1)(hono@4.13.17)':
+    dependencies:
+      '@hono/node-server': 2.1.6(hono@4.13.17)
+      '@itsy/corgi': 1.4.1
+      '@navikt/navno-logger': 1.2.0(pino-pretty@13.2.0)
+      '@prometheus-io/client': 0.16.1
+      hono: 4.13.17
 
   '@opentelemetry/api@1.9.1': {}
 

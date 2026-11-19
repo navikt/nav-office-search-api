@@ -21,30 +21,24 @@ const startAppWithOffice = async () => {
 };
 
 describe('probes', () => {
-	test('/internal/isAlive answers 200', async () => {
-		const app = await startApp();
+	test('/internal/alive answers 200, ready or not', async () => {
+		const app = await startApp({ isReady: () => false });
 
-		const res = await app.get('/internal/isAlive');
+		const res = await app.get('/internal/alive');
 
-		expect(res.status).toBe(200);
-		// Hono leaves a plain 200 to Response, which writes the type without the space
-		expect(res.headers.get('content-type')).toMatch(/^text\/plain; ?charset=UTF-8$/);
-		expect(await res.text()).toBe('I am alive!');
+		expect([res.status, await res.text()]).toEqual([200, 'OK']);
 	});
 
-	test('/internal/isReady answers 503 until the app is ready, then 200', async () => {
+	test('/internal/ready answers 503 until the app is ready, then 200', async () => {
 		let ready = false;
 		const app = await startApp({ isReady: () => ready });
 
-		const notReady = await app.get('/internal/isReady');
-		expect(notReady.status).toBe(503);
-		expect(notReady.headers.get('content-type')).toBe('text/plain; charset=UTF-8');
-		expect(await notReady.text()).toBe('I am not ready...');
+		const notReady = await app.get('/internal/ready');
+		expect([notReady.status, await notReady.text()]).toEqual([503, 'Not ready']);
 
 		ready = true;
-		const isReady = await app.get('/internal/isReady');
-		expect(isReady.status).toBe(200);
-		expect(await isReady.text()).toBe('I am ready!');
+		const isReady = await app.get('/internal/ready');
+		expect([isReady.status, await isReady.text()]).toEqual([200, 'OK']);
 	});
 });
 
@@ -112,9 +106,9 @@ describe('tracing', () => {
 		const app = await startAppWithOffice();
 
 		await app.get('/geoid/?id=030102');
-		await app.get('/internal/isAlive');
+		await app.get('/internal/alive');
 
-		expect(vi.mocked(traceRoute).mock.calls).toEqual([['/geoid'], ['/internal/isAlive']]);
+		expect(vi.mocked(traceRoute).mock.calls).toEqual([['/geoid'], ['/internal/alive']]);
 	});
 });
 

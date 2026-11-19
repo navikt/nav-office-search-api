@@ -1,10 +1,11 @@
 import { isHttpError, isTimeoutError } from '@itsy/corgi';
 import { schema, type StandardSchemaV1 } from '@itsy/corgi/schema';
 import { logger } from '@navikt/navno-logger';
+import { failureOf } from '@navikt/navno-server/upstream';
 import { z } from 'zod';
 import { env } from '../env.ts';
 import { recordPdlErrors } from '../metrics.ts';
-import { failureOf, REQUEST_TIMEOUT_MS, upstreamClient } from '../upstream.ts';
+import { REQUEST_TIMEOUT_MS, upstreamClient } from '../upstream.ts';
 import { freshPdlToken, pdlToken, TokenError } from './token.ts';
 
 const pdlGraphQLUrl = `${env.PDL_ORIGIN}/graphql`;

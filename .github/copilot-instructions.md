@@ -20,13 +20,14 @@ build/             what `pnpm build` runs, on the GitHub runner. Not in the imag
   ssb.ts           SSB's bydeler: the version of the classification that is valid now
   http.ts          the client they download with: 30 s per attempt, two retries
 server/
-  main.ts          starts the server: the NORG load and the reference data load, both again every morning; shutdown
-  app.ts           the Hono app: mounts the routes, names traces, answers a thrown error with 500
-  internal.ts      /internal/isAlive, /internal/isReady, /internal/metrics
+  main.ts          starts the server with @navikt/navno-server's serve(), which has the keep-alive and the shutdown:
+                   the NORG load and the reference data load, both again every morning
+  app.ts           the Hono app: mounts the routes and navno-server's internal() (/internal/alive, /internal/ready,
+                   /internal/metrics), names traces with its traceRoutes(), answers a thrown error with 500
   env.ts           the environment, checked with zod at startup
   metrics.ts       business metrics, and countLookup, the middleware that counts a route's lookups
   schedule.ts      everyMorning: a job at 05:00 UTC, with croner
-  upstream.ts      upstreamClient: a corgi client with a timeout that counts its requests; failureOf: what to log
+  upstream.ts      upstreamClient: navno-server's corgi client with a timeout, counted and timed in our metrics
   fetch.ts         fetchJson, which the NORG loader still uses
   data/
     data.ts        the reference data: loadData (all or nothing), the data in use, refreshData for start and 05:00
@@ -76,8 +77,8 @@ test/              test helpers: the app on a free port, the fetch mock, fixture
 | `GET /adresse?queryString=<query>` | Freetext address search via PDL GraphQL (sokAdresse)   |
 | `GET /bydel?postnummer=<nr>`       | Looks up district numbers for a four-digit postal code |
 | `GET /search?query=<text>`         | The office search: a postnummer, a name or an address  |
-| `GET /internal/isAlive`            | Liveness probe                                         |
-| `GET /internal/isReady`            | Readiness probe (503 until both loads have succeeded)  |
+| `GET /internal/alive`              | Liveness probe                                         |
+| `GET /internal/ready`              | Readiness probe (503 until both loads have succeeded)  |
 | `GET /internal/metrics`            | Prometheus metrics (scraped by NAIS)                   |
 
 Each route module exports its own `Hono` app, which `server/app.ts` mounts with `app.route()`. A route counts its lookup with the `countLookup(operation)` middleware: it sets `c.set('lookupResult', 'hits' | 'empty')` when it answers 200 or 404, and without that a 5xx counts as `error` and a 4xx as `invalid`. Query parameters are read with `c.req.queries()`, so a repeated one counts as missing. Only the root app's `strict: false` makes a trailing slash match, so tests always go through the root app. Paths are case-sensitive. A thrown error reaches `app.onError`, which logs the method and path (never the query) and answers 500.
@@ -128,17 +129,18 @@ Each route module exports its own `Hono` app, which `server/app.ts` mounts with 
 
 The upstream series are for requests made through `upstreamClient()`, and are named as in the frontend. PDL reports some failures as GraphQL errors on HTTP 200, where the upstream counter sees a `2xx`; `pdl_errors_total` counts those, and the errors in an HTTP error's body too.
 
-The `result` vocabulary and `operation` label deliberately match the nav-office-search frontend (`nav_office_search_*`), which measures the same lookups from the client side. Process metrics come from NAIS, and request latency from OTel/ingress, so they are not duplicated here.
+The nav-office-search frontend (`nav_office_search_*`) passes the answers on unread and counts its searches by status alone (`ok`, `invalid`, `error`), so `hits` and `empty` are only told apart here. Process metrics come from NAIS, and request latency from OTel/ingress, so they are not duplicated here.
 
 Never use user input (geoIds, addresses, postnummer) as label values – keep cardinality low.
 
 ### Alerts
 
-`.nais/alerts.yml` (a `PrometheusRule`, deployed to prod-fss only by `deploy.prod.yml`) covers only what the frontend can't see. The frontend's alerts are the canary for user-facing failures, including PDL outages, and the metrics above are for diagnosing them:
+`.nais/alerts.yml` (a `PrometheusRule`, deployed to prod-fss only by `deploy.prod.yml`) covers only what the frontend can't see. The frontend's alert is the canary for failed searches, including PDL outages, and the metrics above are for diagnosing them:
 
 - `NavOfficeSearchApiDataStale`: a pod whose last successful reference data load is over 2 days old. A failed load keeps the pods ready with the data from before, so nothing user-facing notices. It takes `min()` over the pods, so one that loads doesn't hide one that doesn't; a pod that has never loaded exports 0 and counts as stale after an hour.
 - `NavOfficeSearchApiKommunerWithoutOffice`: the last load found no office for a kommune in Bring's register (`reference_data_without_office{dataset="kommuner"}` above 0), so searches there find none.
-- `NavOfficeSearchApiPdlRejectingRequests`: PDL refuses what we send, as more than 5 GraphQL errors with a code other than `server_error` (`pdl_errors_total`), or more than 5 HTTP 4xx answers (the `pdl` upstream series), in 15 minutes. Those are ours to fix: the token, the access to pdl-api, or the query. PDL being down (`server_error`, 5xx, timeouts) isn't counted: the frontend's alerts see the failed searches.
+- `NavOfficeSearchApiPdlRejectingRequests`: PDL refuses what we send, as more than 5 GraphQL errors with a code other than `server_error` (`pdl_errors_total`), or more than 5 HTTP 4xx answers (the `pdl` upstream series), in 15 minutes. Those are ours to fix: the token, the access to pdl-api, or the query. PDL being down (`server_error`, 5xx, timeouts) isn't counted: the frontend's alert sees the failed searches.
+- `NavOfficeSearchApiNoSuccessfulSearches`: no search has found anything (`lookups_total{operation="search",result="hits"}`) for 1.5 hours on a weekday between 08 and 15 UTC. The frontend can't tell a hit from an empty answer, and its error alert can't fire without traffic, so this is also what notices the frontend being down.
 
 Don't use `{{ }}` in the alert annotations: nais deploy templates every resource with Handlebars.
 
@@ -225,4 +227,4 @@ Key settings:
 - Imports name the `.ts` file, and type-only imports use `import type`. `erasableSyntaxOnly` and `verbatimModuleSyntax` keep the code to TypeScript that Node can strip. Imports across top-level folders use `#server/*` and `#test/*` (package.json `imports`)
 - A failed PDL lookup is a `Failure` from `server/pdl/client.ts`, `{ error: true, statusCode, message }`, which the route answers with
 - The `fetchJson` helper handles query string building, JSON parsing, and error wrapping (used by NORG calls). New outbound calls use `upstreamClient()` instead
-- PDL calls go through `pdlQuery(query, variables, schema)`: GraphQL as a plain POST, the answer's `data` typed by its zod schema. Log a failure with `failureOf()`, never an `HttpError` itself, whose message has the URL
+- PDL calls go through `pdlQuery(query, variables, schema)`: GraphQL as a plain POST, the answer's `data` typed by its zod schema. Log a failure with `failureOf()` from `@navikt/navno-server/upstream`, never an `HttpError` itself, whose message has the URL
