@@ -49,35 +49,25 @@ const findBydeler = (bydeler: Bydel[], normalizedQuery: string): OfficeInfo[] =>
 	return bydelerMatches.map((bydel) => buildOfficeHit(bydel.officeInfo, bydel.navn));
 };
 
-const findPoststeder = (poststeder: Poststed[], normalizedQuery: string): OfficeInfo[] => {
-	return poststeder.reduce((matches, poststed) => {
-		const isMatch = poststed.poststedNormalized.includes(normalizedQuery) && poststed.officeInfo.length > 0;
-		if (!isMatch) {
-			return matches;
-		}
+const findPoststeder = (poststeder: Poststed[], normalizedQuery: string): OfficeInfo[] =>
+	poststeder
+		.filter((poststed) => poststed.poststedNormalized.includes(normalizedQuery))
+		.flatMap((poststed) => poststed.officeInfo.map((office) => buildOfficeHit(office, poststed.poststed)));
 
-		return [...matches, ...poststed.officeInfo.map((office) => buildOfficeHit(office, poststed.poststed))];
-	}, [] as OfficeInfo[]);
-};
+const findKommuner = (kommuner: Kommune[], normalizedQuery: string): OfficeInfo[] =>
+	kommuner
+		.filter((kommune) => kommune.kommuneNavnNormalized.includes(normalizedQuery))
+		.flatMap((kommune) => {
+			if (kommune.bydeler) {
+				return kommune.bydeler.map((bydel) => buildOfficeHit(bydel.officeInfo, kommune.kommuneNavn));
+			}
 
-const findKommuner = (kommuner: Kommune[], normalizedQuery: string): OfficeInfo[] => {
-	return kommuner.reduce((matches, kommune) => {
-		const isMatch = kommune.kommuneNavnNormalized.includes(normalizedQuery);
-		if (!isMatch) {
-			return matches;
-		}
+			if (kommune.officeInfo) {
+				return [buildOfficeHit(kommune.officeInfo, kommune.kommuneNavn)];
+			}
 
-		if (kommune.bydeler) {
-			return [...matches, ...kommune.bydeler.map((bydel) => buildOfficeHit(bydel.officeInfo, kommune.kommuneNavn))];
-		}
-
-		if (kommune.officeInfo) {
-			return [...matches, { ...kommune.officeInfo, hitString: kommune.kommuneNavn }];
-		}
-
-		return matches;
-	}, [] as OfficeInfo[]);
-};
+			return [];
+		});
 
 const sortNamesWithQueryFirstBias = (queryNormalized: string) => (a: NameHit, b: NameHit) => {
 	const aStartsWithInput = normalizeString(a.name).startsWith(queryNormalized);
@@ -109,15 +99,8 @@ const transformHits = (officeHits: OfficeInfo[], normalizedQuery: string): NameH
 	}
 
 	return Object.entries(hitsMap)
-		.map(([name, hits]) => {
-			const officeHits = [...hits].sort(sortOfficeNames);
-
-			return {
-				name: name,
-				officeHits,
-			};
-		})
-		.sort(sortNamesWithQueryFirstBias(normalizedQuery));
+		.map(([name, hits]) => ({ name, officeHits: hits.toSorted(sortOfficeNames) }))
+		.toSorted(sortNamesWithQueryFirstBias(normalizedQuery));
 };
 
 // The offices found by a name: of a poststed, a kommune, a bydel or an office itself. They are grouped under the name

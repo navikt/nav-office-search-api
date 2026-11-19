@@ -1,0 +1,15 @@
+name: PR checks
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  check:
+    uses: navikt/navno-ci/.github/workflows/node-build.yml@v1
+    with:
+      push-image: false
+    secrets: inherit

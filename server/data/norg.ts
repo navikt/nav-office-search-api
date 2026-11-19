@@ -50,6 +50,7 @@ export const fetchNorgOffices = async (): Promise<NorgOffices> => {
 
 	for (let i = 0; i < localOffices.length; i += OFFICES_AT_A_TIME) {
 		const some = localOffices.slice(i, i + OFFICES_AT_A_TIME);
+		// oxlint-disable-next-line no-await-in-loop -- a few offices at a time, so NORG isn't asked for all at once
 		const areas = await Promise.all(some.map(({ enhetNr }) => areasOf(enhetNr)));
 
 		// In NORG's order: should it list an area under two offices, the last one gets it

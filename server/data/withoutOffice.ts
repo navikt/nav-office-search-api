@@ -10,7 +10,7 @@ export const kommunerWithoutOffice = (register: PostnrRegisterRow[], kommuner: K
 	const loaded = new Set(kommuner.map(({ kommunenr }) => kommunenr));
 	const inRegister = new Set(register.map(({ kommunenr }) => kommunenr));
 
-	return [...inRegister].filter((kommunenr) => !loaded.has(kommunenr)).sort(byNumber);
+	return [...inRegister].filter((kommunenr) => !loaded.has(kommunenr)).toSorted(byNumber);
 };
 
 // Poststeder without an office after the load. Poststeder in kommuner with bydeler are left out: their offices are
@@ -21,7 +21,7 @@ export const poststederWithoutOffice = (poststeder: Iterable<Poststed>, kommuner
 	return [...poststeder]
 		.filter(({ kommunenr, officeInfo }) => officeInfo.length === 0 && !withBydeler.has(kommunenr))
 		.map(({ postnr }) => postnr)
-		.sort(byNumber);
+		.toSorted(byNumber);
 };
 
 // SSB's bydeler that the load couldn't find an office for

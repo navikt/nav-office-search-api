@@ -22,7 +22,7 @@ test("runs at 05:00 UTC, in summer as in winter, whatever the machine's time zon
 test('runs the job then, and not before', async () => {
 	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
 	vi.setSystemTime(new Date('2026-11-14T04:59:59Z'));
-	const run = vi.fn();
+	const run = vi.fn<() => void>();
 	job = everyMorning(run);
 
 	await vi.advanceTimersByTimeAsync(999);

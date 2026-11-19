@@ -76,7 +76,7 @@ test('has data once a load has succeeded, and keeps having it when a later one f
 	expect(hasReferenceData()).toBe(true);
 
 	http.get(xpOfficeInfoUrl, { status: 503 });
-	await expect(loadData()).rejects.toThrow();
+	await expect(loadData()).rejects.toThrow('Failed to load office URLs from XP');
 	expect(hasReferenceData()).toBe(true);
 });
 
@@ -269,7 +269,7 @@ describe('a refresh', () => {
 			.map(({ geografiskOmraade }) => geografiskOmraade)
 			// Svalbard's office also serves Jan Mayen, so it stays: each kommunenr gone takes one kommune away
 			.filter((geoId) => geoId.length === 4 && geoId !== '2100')
-			.sort();
+			.toSorted();
 		const gone = new Set(kommunenumre.slice(0, 40));
 		http.get(isNavkontorerRequest, (call) => ({
 			json: (norgNavkontorer[enhetNrOf(call)] ?? []).filter(({ geografiskOmraade }) => !gone.has(geografiskOmraade)),

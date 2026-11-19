@@ -71,6 +71,7 @@ export const loadNorgOfficeInfo = async () => {
 		const lokalEnheter = enhetResponse.filter((item) => item.type === 'LOKAL');
 
 		for (const enhet of lokalEnheter) {
+			// oxlint-disable-next-line no-await-in-loop -- one office at a time, as this loader always has
 			const kontorerResponse = await fetchJson<NorgNavkontorerResponse>(`${norgNavkontorerApi}/${enhet.enhetNr}`);
 
 			if (kontorerResponse.error) {

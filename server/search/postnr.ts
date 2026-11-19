@@ -36,7 +36,7 @@ export const postnrSearch = async (query: string): Promise<SearchAnswer> => {
 		.map((bydelsnr) => offices.get(bydelsnr))
 		.filter((office): office is OfficeInfo => office !== undefined);
 
-	const officeInfo = removeDuplicates(bydelOffices, (a, b) => a.enhetNr === b.enhetNr).sort(sortOfficeNames);
+	const officeInfo = removeDuplicates(bydelOffices, (a, b) => a.enhetNr === b.enhetNr).toSorted(sortOfficeNames);
 
 	return { status: 200, body: { ...poststed, type: 'postnr', officeInfo } };
 };

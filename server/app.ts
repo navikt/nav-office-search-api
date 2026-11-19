@@ -1,7 +1,7 @@
-import { logger, traceRoute } from '@navikt/navno-logger';
+import { logger } from '@navikt/navno-logger';
+import { internal, traceRoutes } from '@navikt/navno-server';
 import { Hono } from 'hono';
-import { routePath } from 'hono/route';
-import { internal } from './internal.ts';
+import { metricsRegistry } from './metrics.ts';
 import { geoid } from './offices/route.ts';
 import { adresse } from './pdl/adresse.ts';
 import { bydel } from './pdl/bydel.ts';
@@ -12,16 +12,15 @@ export const createApp = (isReady: () => boolean) => {
 	const app = new Hono({ strict: false });
 
 	// First, so NAIS's OpenTelemetry names every request's trace after its route
-	app.use(async (c, next) => {
-		await next();
-		traceRoute(routePath(c));
-	});
+	app.use(traceRoutes());
 
 	app.route('/geoid', geoid);
 	app.route('/adresse', adresse);
 	app.route('/bydel', bydel);
 	app.route('/search', search);
-	app.route('/internal', internal(isReady));
+	// Probes and metrics for NAIS (.nais/config.yml). Not ready until the office map and the reference data are loaded
+	// (main.ts).
+	app.route('/internal', internal({ registry: metricsRegistry, ready: isReady }));
 
 	// Logs the path, not the query, which holds what was searched for
 	app.onError((err, c) => {

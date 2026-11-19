@@ -26,5 +26,7 @@ export default defineConfig({
 		silent: 'passed-only',
 		restoreMocks: true,
 		unstubEnvs: true,
+		// Loaded through Vitest, so a test's mock of the logger (app.test.ts mocks traceRoute) reaches what it imports
+		server: { deps: { inline: ['@navikt/navno-server'] } },
 	},
 });
