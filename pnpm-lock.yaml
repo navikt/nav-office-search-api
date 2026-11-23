@@ -167,26 +167,26 @@ importers:
   .:
     dependencies:
       '@hono/node-server':
-        specifier: 2.1.6
-        version: 2.1.6(hono@4.13.17)
+        specifier: 2.1.8
+        version: 2.1.8(hono@4.13.18)
       '@itsy/corgi':
-        specifier: 1.4.1
-        version: 1.4.1
+        specifier: 1.5.0
+        version: 1.5.0
       '@navikt/navno-logger':
         specifier: 1.2.0
         version: 1.2.0(pino-pretty@13.2.0)
       '@navikt/navno-server':
         specifier: 1.0.0
-        version: 1.0.0(@hono/node-server@2.1.6(hono@4.13.17))(@itsy/corgi@1.4.1)(@navikt/navno-logger@1.2.0(pino-pretty@13.2.0))(@prometheus-io/client@0.16.1)(hono@4.13.17)
+        version: 1.0.0(@hono/node-server@2.1.8(hono@4.13.18))(@itsy/corgi@1.5.0)(@navikt/navno-logger@1.2.0(pino-pretty@13.2.0))(@prometheus-io/client@0.16.1)(hono@4.13.18)
       '@prometheus-io/client':
         specifier: 0.16.1
         version: 0.16.1
       croner:
-        specifier: 11.0.0
-        version: 11.0.0
+        specifier: 11.0.1
+        version: 11.0.1
       hono:
-        specifier: 4.13.17
-        version: 4.13.17
+        specifier: 4.13.18
+        version: 4.13.18
       ufo:
         specifier: 1.6.4
         version: 1.6.4
@@ -195,8 +195,8 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: 26.6.5
-        version: 26.6.5
+        specifier: 26.6.6
+        version: 26.6.6
       lefthook:
         specifier: 2.2.2
         version: 2.2.2
@@ -220,18 +220,18 @@ importers:
         version: 6.0.3
       vitest:
         specifier: 5.1.0
-        version: 5.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(vite@8.3.7(@types/node@26.6.5))
+        version: 5.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(vite@8.3.7(@types/node@26.6.6))
 
 packages:
 
-  '@hono/node-server@2.1.6':
-    resolution: {integrity: sha512-p/KH9MnfNcsm3sR6x4lNgm5j+QN4Et8srKredl9DZfXiyZ1UQ3aQ2YVpFLbqktYN5JI+DB+VZFKM2PqE5hLKjQ==}
+  '@hono/node-server@2.1.8':
+    resolution: {integrity: sha512-jdf7FHh6A1lzjpHHQUgxsg2GeER2vMetnAOfeActzcoli6jamlK+NAwL6Dsr5Fl3BS3tYUQzCdtZjU8Qxv7bEA==}
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4 || ^5.0.0-0
 
-  '@itsy/corgi@1.4.1':
-    resolution: {integrity: sha512-ksGP31gWh5eQ9AO7JFxOCx8g/FPSukw5d1AJJp7Ls3RgXVhPm1xf/uYwAo+8CT97RRIX53/aHNWd9F0nfFbenA==}
+  '@itsy/corgi@1.5.0':
+    resolution: {integrity: sha512-P7YcnXkywOY9h76+oeiMIluCqPQMHpeejewOi5wSlfQPDNWizcRYO5OG/q+ptEP3pdVd/cM9thf6GTzpy+5e4w==}
     engines: {node: '>=18.17'}
 
   '@jridgewell/resolve-uri@3.1.2':
@@ -656,8 +656,8 @@ packages:
   '@types/estree@1.0.10':
     resolution: {integrity: sha512-lTyOMnOcmRBzdCv6/4zUZCrEhV0xrqQiUZBZtVcbmLHBXKLnN8q89v/wKRF/Q0HbwVsqbIG3o5HDoFl9sduM+g==}
 
-  '@types/node@26.6.5':
-    resolution: {integrity: sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg==}
+  '@types/node@26.6.6':
+    resolution: {integrity: sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog==}
 
   '@vitest/mocker@5.1.0':
     resolution: {integrity: sha512-5umB9/jlWcqVS6fsrFmv5Gdnpu6wAUio/lEOwAmvB7v+lFo/IW2B9FhAD0p19GCULTgMzLCdUmuCDCnAzWgppQ==}
@@ -691,8 +691,8 @@ packages:
   colorette@2.0.20:
     resolution: {integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==}
 
-  croner@11.0.0:
-    resolution: {integrity: sha512-T17ADjdttrVToyzLpLq9Xb9xzcMwpQ/M3Qs9szhh0MVNTbv6NWQ9OFYa2qlzPYXFMn+uoDlnW1IpIv6cAvFtyA==}
+  croner@11.0.1:
+    resolution: {integrity: sha512-/fmHcoczPy5cMcmJ6ex7J7LAwb545V1dNmRrdDGP3hwStg/06IYP56YgBySCSdWGDz2PJYQyDukaR8b8R5o2HA==}
     engines: {node: '>=18.0'}
 
   dateformat@4.6.3:
@@ -738,8 +738,8 @@ packages:
   help-me@5.0.0:
     resolution: {integrity: sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg==}
 
-  hono@4.13.17:
-    resolution: {integrity: sha512-vZIcbkvjOR5hHRWERbGkr8fGfF0GGM1ooYkuH448iO3b2AdVEr3AXZSw4Z3Kn+1L5z0CVoVeyV29VGYmFh05kQ==}
+  hono@4.13.18:
+    resolution: {integrity: sha512-H9q/E1XizaWstJxUW881dmLxEj+t/TrGGnyxINkm4+sK0qUwsMtFdo2BWI9Vs3cIS19MU6b6iCijoUoEf4f3DA==}
     engines: {node: '>=16.9.0'}
 
   joycon@3.1.1:
@@ -1267,11 +1267,11 @@ packages:
 
 snapshots:
 
-  '@hono/node-server@2.1.6(hono@4.13.17)':
+  '@hono/node-server@2.1.8(hono@4.13.18)':
     dependencies:
-      hono: 4.13.17
+      hono: 4.13.18
 
-  '@itsy/corgi@1.4.1': {}
+  '@itsy/corgi@1.5.0': {}
 
   '@jridgewell/resolve-uri@3.1.2': {}
 
@@ -1287,13 +1287,13 @@ snapshots:
       pino: 10.4.0
       pino-pretty: 13.2.0
 
-  '@navikt/navno-server@1.0.0(@hono/node-server@2.1.6(hono@4.13.17))(@itsy/corgi@1.4.1)(@navikt/navno-logger@1.2.0(pino-pretty@13.2.0))(@prometheus-io/client@0.16.1)(hono@4.13.17)':
+  '@navikt/navno-server@1.0.0(@hono/node-server@2.1.8(hono@4.13.18))(@itsy/corgi@1.5.0)(@navikt/navno-logger@1.2.0(pino-pretty@13.2.0))(@prometheus-io/client@0.16.1)(hono@4.13.18)':
     dependencies:
-      '@hono/node-server': 2.1.6(hono@4.13.17)
-      '@itsy/corgi': 1.4.1
+      '@hono/node-server': 2.1.8(hono@4.13.18)
+      '@itsy/corgi': 1.5.0
       '@navikt/navno-logger': 1.2.0(pino-pretty@13.2.0)
       '@prometheus-io/client': 0.16.1
-      hono: 4.13.17
+      hono: 4.13.18
 
   '@opentelemetry/api@1.9.1': {}
 
@@ -1494,18 +1494,18 @@ snapshots:
 
   '@types/estree@1.0.10': {}
 
-  '@types/node@26.6.5':
+  '@types/node@26.6.6':
     dependencies:
       undici-types: 8.9.0
 
-  '@vitest/mocker@5.1.0(vite@8.3.7(@types/node@26.6.5))':
+  '@vitest/mocker@5.1.0(vite@8.3.7(@types/node@26.6.6))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.1.0
       estree-walker: 3.0.3
       magic-string: 1.4.5
     optionalDependencies:
-      vite: 8.3.7(@types/node@26.6.5)
+      vite: 8.3.7(@types/node@26.6.6)
 
   '@vitest/spy@5.1.0': {}
 
@@ -1519,7 +1519,7 @@ snapshots:
 
   colorette@2.0.20: {}
 
-  croner@11.0.0: {}
+  croner@11.0.1: {}
 
   dateformat@4.6.3: {}
 
@@ -1550,7 +1550,7 @@ snapshots:
 
   help-me@5.0.0: {}
 
-  hono@4.13.17: {}
+  hono@4.13.18: {}
 
   joycon@3.1.1: {}
 
@@ -1847,7 +1847,7 @@ snapshots:
 
   undici-types@8.9.0: {}
 
-  vite@8.3.7(@types/node@26.6.5):
+  vite@8.3.7(@types/node@26.6.6):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -1855,13 +1855,13 @@ snapshots:
       rolldown: 1.2.18
       tinyglobby: 0.2.17
     optionalDependencies:
-      '@types/node': 26.6.5
+      '@types/node': 26.6.6
       fsevents: 2.3.3
 
-  vitest@5.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.5)(vite@8.3.7(@types/node@26.6.5)):
+  vitest@5.1.0(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(vite@8.3.7(@types/node@26.6.6)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.1.0(vite@8.3.7(@types/node@26.6.5))
+      '@vitest/mocker': 5.1.0(vite@8.3.7(@types/node@26.6.6))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -1872,11 +1872,11 @@ snapshots:
       tinybench: 6.2.3
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.3.7(@types/node@26.6.5)
+      vite: 8.3.7(@types/node@26.6.6)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
-      '@types/node': 26.6.5
+      '@types/node': 26.6.6
     transitivePeerDependencies:
       - msw
 
